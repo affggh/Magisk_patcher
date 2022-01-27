@@ -1,7 +1,7 @@
 :: Batch script by affggh 879632264@qq.com
 :: Busybox from github compiled by myself. busybox-w32
 :: Shell script Edited from magisk canary flashable apk file...
-:: magiskboot for cygwin64 is based on magisk source 20220124...also compiled by myself
+:: magiskboot for cygwin64 is based on magisk source 20220127...also compiled by myself
 
 :: This script based on Apache 2.0 License
 ::
@@ -1404,8 +1404,10 @@ if "!configdefault!"=="1" (
 	) else (
 		echo Generate config.txt failed...
 	)
+	exit /b 0
 ) else (
 	echo Read config from device...
+	adb kill-server
 	for /f "delims=" %%i in ('adb get-state 1^>nul 2^>nul') do set "state=%%i"
 	if not defined state (
 		echo Device not found...
@@ -1430,7 +1432,7 @@ if "!configdefault!"=="1" (
 		echo Generate config.txt failed...
 	)
 )
-
+adb kill-server
 goto :EndofBatch
 
 rem End of batch script
