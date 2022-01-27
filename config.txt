@@ -1,6 +1,0 @@
-# var  type
-arch=arm
-keepverity=true
-keepforceencrypt=true
-patchvbmetaflag=false
-magisk=prebuilt\Magisk-v24.0.apk
