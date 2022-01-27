@@ -50,5 +50,7 @@ I've create lots of repositories ,this is the last one...
 ```
 # General use
 ***
+```
 magisk_patcher.bat autoconfig --default
 magisk_patcher.bat patch -i boot.img -c config.txt
+```
