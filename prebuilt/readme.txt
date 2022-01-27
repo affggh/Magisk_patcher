@@ -1,0 +1,1 @@
+default is magisk.apk
