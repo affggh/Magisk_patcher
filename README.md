@@ -38,6 +38,11 @@ I've create lots of repositories ,this is the last one...
                       without root
             --default  generate with default instead read from device
             -m     Defined custom magisk path
+        patchondevice : patch on device
+                     In some reason patch on windows possibally failed...
+                     so we can use device environment to patch...
+                     The patch config will follow device instead choose
+            -m     Defined custom magisk path
 
   Example : 
           magisk_patcher.bat patch -i boot.img -c config.txt
@@ -47,10 +52,15 @@ I've create lots of repositories ,this is the last one...
           magisk_patcher.bat autoconfig
           magisk_patcher.bat autoconfig --default
           magisk_patcher.bat autoconfig -m prebuilt\magisk.apk
+
+          magisk_patcher.bat patchondevice -i boot.img -m prebuilt\magisk.apk
 ```
 # General use
 ***
 ```
 magisk_patcher.bat autoconfig --default
 magisk_patcher.bat patch -i boot.img -c config.txt
+```
+```
+magisk_patcher.bat patchondevice -i boot.img -m prebuilt\magisk.apk
 ```

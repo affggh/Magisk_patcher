@@ -410,7 +410,7 @@ exit
 
 :BeginOfBatch
 :: Began of args detection
-set funcs=patch autoconfig test
+set funcs=patch patchondevice autoconfig test
 :: We need certutil extract busybox
 :: cd %~dp0
 :: Add bin to envrionment at once time
@@ -503,7 +503,9 @@ if not "!arch_detective!"=="1" echo The arch type [!arch!] your defined not supp
 
 if "!arch!"=="arm" set arch=armeabi-v7a
 if "!arch!"=="arm64" set arch=arm64-v8a
-:: x86 and x86_64 no need to change
+if "!arch!"=="x86" set arch=x86
+if "!arch!"=="x86_64" set arch=x86_64
+:: x86 and x86_64 just for some read bug
 if exist tmp\ rd /s /q tmp\
 busybox unzip "!magisk!" -od tmp "assets/*" "lib/!arch!/*"
 for /f "tokens=1 delims=" %%i in ('busybox du -s tmp\lib\!arch!') do set dirsize=%%i
@@ -527,10 +529,10 @@ for %%i in (arm64-v8a x86_64) do (
 )
 
 for /r "tmp\lib" %%i in (lib*.so) do (
-	if "%%~nxi"=="libmagiskinit.so" copy %%i .\magiskinit
-	if "%%~nxi"=="libmagisk32.so" copy %%i .\magisk32
+	if "%%~nxi"=="libmagiskinit.so" copy "%%i" .\magiskinit
+	if "%%~nxi"=="libmagisk32.so" copy "%%i" .\magisk32
 	if "%%~nxi"=="libmagisk64.so" (
-		if "!is64bit!"=="true" copy %%i .\magisk64
+		if "!is64bit!"=="true" copy "%%i" .\magisk64
 	)
 )
 
@@ -551,6 +553,114 @@ if defined output (
 
 more +211 %0 | busybox ash -s !input! !keepverity! !keepforceencrypt! !patchvbmetaflag! !output!
 set exitcode=%errorlevel%
+goto :EndofBatch
+
+:patchondevice
+:: in some situation patch on windows will failed or bootloop
+:: script allow your patch with adb on device environment...
+echo Function: : patchondevice
+if not defined magisk set magisk=%~dp0prebuilt\magisk.apk
+if not exist "!magisk!" (
+	echo file !magisk! not found...
+	echo please check your config or use -m to choose one...
+	exit /b 1
+)
+if not exist "!input!" echo Input file not exist... &exit /b 1
+echo Get device state...
+call :getdevice
+echo Prepare files ...
+busybox printf "Founding device arch : "
+:: BUG ... failed on some device...
+:: for /f %%i in ('adb shell getprop ro.product.cpu.abi') do (
+::	set arch=%%i
+:: )
+:: As replace
+	adb push %~dp0bin\get_config.sh !tmp! >nul
+	adb shell chmod 0755 !tmp!/get_config.sh
+	for /f "delims=" %%i in ('adb shell sh !tmp!/get_config.sh') do (
+		set %%i
+	)
+	adb shell rm -f !tmp!/get_config.sh
+:: End As
+:: wreid bug... read config via script
+if "!arch:~0,3!"=="arm" (
+	if not "!arch:~0,5!"=="arm64" (
+		set arch=armeabi-v7a
+	)
+)
+if "!arch:~0,5!"=="arm64" set arch=arm64-v8a
+if "!arch:~0~3!"=="x86" (
+	if not "!arch:0~6!"=="x86_64" (
+		set arch=x86
+	)
+)
+if "!arch:0~6!"=="x86_64" set arch=x86_64
+busybox printf "%%s\n" "!arch!"
+
+busybox printf "Unzip !magisk!... \n"
+:: x86 and x86_64 no need to change
+if exist tmp\ rd /s /q tmp\
+busybox unzip "!magisk!" -od tmp "assets/*" "lib/!arch!/*" >nul
+for /f "tokens=1 delims=" %%i in ('busybox du -s tmp\lib\!arch!') do set dirsize=%%i
+if "!dirsize!" lss "128" (
+	busybox printf "64bit file at 32bit dir ,re unzipping .... "
+	if "!arch!"=="arm64-v8a" (
+		set subarch=armeabi-v7a
+		busybox unzip "!magisk!" -od tmp "lib/!subarch!/*" >nul
+	)
+	if "!arch!"=="x86_64" (
+		set subarch=x86
+		busybox unzip "!magisk!" -od tmp "lib/!subarch!/*" >nul
+	)
+)
+busybox printf "Done\n"
+busybox printf "Find magisk version : "
+:: Get magisk version
+for /f "tokens=2 delims==" %%i in ('busybox grep -rn "MAGISK_VER=" tmp\assets\*') do set MAGISK_VER=%%i
+busybox printf "%%s\n" "!MAGISK_VER!"
+for %%i in (arm64-v8a x86_64) do (
+	if "!arch!"=="%%i" set is64bit=true
+)
+if not exist magisk\ md magisk\
+busybox printf "Copying files into magisk folder... "
+for /r "tmp\lib" %%i in (lib*.so) do (
+	if "%%~nxi"=="libmagiskinit.so" copy "%%i" .\magisk\magiskinit  >nul
+	if "%%~nxi"=="libmagisk32.so" copy "%%i" .\magisk\magisk32  >nul
+	if "%%~nxi"=="libmagisk64.so" (
+		if "!is64bit!"=="true" copy "%%i" .\magisk\magisk64  >nul
+	)
+	if "%%~nxi"=="libbusybox.so" copy "%%i" .\magisk\busybox  >nul
+	if "%%~nxi"=="libmagiskboot.so" copy "%%i" .\magisk\magiskboot  >nul
+)
+xcopy /e /y tmp\assets\* .\magisk\  >nul
+busybox printf "done\n"
+busybox printf "Notice : boot_patch.sh will auto read config from device...\n"
+busybox printf "Wroking at [%%s]\n" "!tmp!"
+busybox printf "Transporting files... "
+
+copy !input! .\magisk\boot.img  >nul
+adb push .\magisk !tmp! >nul
+busybox printf "done\n"
+busybox printf "Patching image...\n"
+adb shell chmod -R 755 !tmp!/magisk
+adb shell !tmp!/magisk/boot_patch.sh !tmp!/magisk/boot.img
+busybox printf "Fetching boot.img... "
+if exist "new-boot.img" del /q "new-boot.img"
+adb pull !tmp!/magisk/new-boot.img .\new-boot.img >nul
+busybox printf "done\n"
+if exist "new-boot.img" (
+	busybox printf "Success..."
+	set exitcode=0
+) else (
+	busybox printf "Failed..."
+	set exitcode=1
+)
+busybox printf "Cleanup [!tmp!] and temp files... "
+adb shell rm -rf !tmp!/magisk
+rd /s /q magisk\ 
+rd /s /q tmp\
+busybox printf "done\n"
+
 goto :EndofBatch
 
 :autoconfig
@@ -574,46 +684,16 @@ if "!configdefault!"=="1" (
 		busybox printf "magisk=\n" >> config.txt
 	)
 	if exist ".\config.txt" (
-		rem type .\config.txt
 		echo Successfully generate config.txt...
+		set exitcode=0
 	) else (
 		echo Generate config.txt failed...
+		set exitcode=1
 	)
-	rem show information
-	exit /b 0
 ) else (
 	echo Read config from device...
-	tasklist /FI "IMAGENAME eq adb.exe" | findstr "adb.exe" >nul
-	if "%errorlevel%"=="0" (
-		rem kill adb.exe service if exist
-		taskkill /F /FI "IMAGENAME eq adb.exe" /IM * >nul
-	)
-	for /f "delims=" %%i in ('adb get-state 2^>nul') do set "state=%%i"
-	rem remove ' '
-	set state=!state: =!
-	if not defined state (
-		echo Device not found...
-		exit /b 1
-	) else (
-		for %%i in (device recovery) do (
-			if "%%i"=="!state!" set device_flag=1
-		)
-		if not "!device_flag!"=="1" (
-			echo Can not load config via unkonw state...
-			exit /b 1
-		)
-	)
-)
+	call :get-device
 	busybox printf "# var  type\n" > config.txt
-	rem Lots of device not support this new way ,use old way
-	rem type "%~dp0bin\get_config.sh" | adb shell >> config.txt
-	if "!state!"=="device" (
-		set tmp=/data/local/tmp
-	)
-	if "!state!"=="recovery" (
-		set tmp=/tmp
-	)
-	echo Device state is !state! , tmp as [!tmp!]...
 	adb push %~dp0bin\get_config.sh !tmp! >nul
 	adb shell chmod 0755 !tmp!/get_config.sh
 	adb shell sh !tmp!/get_config.sh >> config.txt
@@ -621,14 +701,49 @@ if "!configdefault!"=="1" (
 	if not defined magisk set magisk=%~dp0prebuilt\magisk.apk
 	busybox printf "magisk=%%s\n" "!magisk!" >> config.txt
 	if exist ".\config.txt" (
-		rem type config.txt
 		echo Successfully generate config.txt...
+		set exitcode=0
 	) else (
 		echo Generate config.txt failed...
+		set exitcode=1
 	)
 )
 adb kill-server
 goto :EndofBatch
+
+:getdevice
+tasklist /FI "IMAGENAME eq adb.exe" | findstr "adb.exe" >nul
+if "%errorlevel%"=="0" (
+	rem kill adb.exe service if exist
+	taskkill /F /FI "IMAGENAME eq adb.exe" /IM * >nul
+)
+for /f "delims=" %%i in ('adb get-state 2^>nul') do set "state=%%i"
+rem remove ' '
+set state=!state: =!
+if not defined state (
+	echo Device not found...
+	exit /b 1
+) else (
+	for %%i in (device recovery) do (
+		if "%%i"=="!state!" set device_flag=1
+	)
+	if not "!device_flag!"=="1" (
+		echo Can not load config via unkonw state...
+		exit /b 1
+	)
+)
+set device_flag=
+rem Lots of device not support this new way ,use old way
+rem type "%~dp0bin\get_config.sh" | adb shell >> config.txt
+if "!state!"=="device" (
+	set tmp=/data/local/tmp
+)
+if "!state!"=="recovery" (
+	set tmp=/tmp
+)
+echo Device state is !state! , tmp as [!tmp!]...
+rem This function will set variable tmp and state
+goto :eof
 
 rem End of batch script
 
@@ -684,6 +799,9 @@ echo                       without root
 echo             --default  generate with default instead read from device
 echo             -m     Defined custom magisk path
 echo.
+echo          patchondevice : patch on device
+echo                     for some reason patch on windows will failed...
+echo                     you can run this function patch boot on your device
 echo   Example : 
 echo           %~nx0 patch -i boot.img -c config.txt
 echo           %~nx0 patch -i boot.img -a armeabi-v7a -kv true -ke true -pv false
