@@ -211,6 +211,8 @@
 
 @echo off & setlocal enabledelayedexpansion 
 
+set Version=20200129
+
 :: Began of args detection
 set funcs=patch patchondevice autoconfig test
 :: cd %~dp0
@@ -342,6 +344,7 @@ if not "!recoverymode!"=="true" set recoverymode=false
 :: Show all type
 echo  List your config :
 echo                    Magisk version = !MAGISK_VER!
+echo                    Batch Script Version = !Version!
 echo                    arch=!arch!
 echo                    keepverity=!keepverity!
 echo                    keepforceencrypt=!keepforceencrypt!
