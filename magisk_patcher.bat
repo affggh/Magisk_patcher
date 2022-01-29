@@ -207,211 +207,12 @@
 ::   See the License for the specific language governing permissions and
 ::   limitations under the License.
 
-@echo off & setlocal enabledelayedexpansion & goto :BeginOfBatch
+:: Begin of Batch
 
+@echo off & setlocal enabledelayedexpansion 
 
-#-- Begin of shell script -- boot_patch.sh
-#!/bin/sh
-############
-# Functions
-############
-
-# Pure bash dirname implementation
-getdir() {
-  case "$1" in
-    */*)
-      dir=${1%/*}
-      if [ -z $dir ]; then
-        echo "/"
-      else
-        echo $dir
-      fi
-    ;;
-    *) echo "." ;;
-  esac
-}
-
-ui_print(){
-	printf "%s\n" "$1"
-}
-
-abort(){
-	printf "%s\n" "$1"
-	exit 1
-}
-#################
-# Initialization
-#################
-
-BOOTIMAGE="$1"
-[ -e "$BOOTIMAGE" ] || abort "$BOOTIMAGE does not exist!"
-
-# Flags
-KEEPVERITY=$2
-KEEPFORCEENCRYPT=$3
-PATCHVBMETAFLAG=$4
-RECOVERYMODE=false
-export KEEPVERITY
-export KEEPFORCEENCRYPT
-export PATCHVBMETAFLAG
-
-output=$5
-
-chmod -R 755 .
-
-#########
-# Unpack
-#########
-
-CHROMEOS=false
-
-ui_print "- Unpacking boot image"
-./bin/magiskboot unpack "$BOOTIMAGE"
-
-case $? in
-  0 ) ;;
-  1 )
-    abort "! Unsupported/Unknown image format"
-    ;;
-  2 )
-    ui_print "- ChromeOS boot image detected"
-    CHROMEOS=true
-    ;;
-  * )
-    abort "! Unable to unpack boot image"
-    ;;
-esac
-
-###################
-# Ramdisk Restores
-###################
-
-# Test patch status and do restore
-ui_print "- Checking ramdisk status"
-if [ -e ramdisk.cpio ]; then
-  ./bin/magiskboot cpio ramdisk.cpio test
-  STATUS=$?
-else
-  # Stock A only system-as-root
-  STATUS=0
-fi
-case $((STATUS & 3)) in
-  0 )  # Stock boot
-    ui_print "- Stock boot image detected"
-    SHA1=$(./bin/magiskboot sha1 "$BOOTIMAGE" 2>/dev/null)
-    cat $BOOTIMAGE > stock_boot.img
-    cp -af ramdisk.cpio ramdisk.cpio.orig 2>/dev/null
-    ;;
-  1 )  # Magisk patched
-    ui_print "- Magisk patched boot image detected"
-    # Find SHA1 of stock boot image
-    [ -z $SHA1 ] && SHA1=$(./bin/magiskboot cpio ramdisk.cpio sha1 2>/dev/null)
-    ./bin/magiskboot cpio ramdisk.cpio restore
-    cp -af ramdisk.cpio ramdisk.cpio.orig
-    rm -f stock_boot.img
-    ;;
-  2 )  # Unsupported
-    ui_print "! Boot image patched by unsupported programs"
-    abort "! Please restore back to stock boot image"
-    ;;
-esac
-
-# Work around custom legacy Sony /init -> /(s)bin/init_sony : /init.real setup
-INIT=init
-if [ $((STATUS & 4)) -ne 0 ]; then
-  INIT=init.real
-fi
-
-##################
-# Ramdisk Patches
-##################
-
-ui_print "- Patching ramdisk"
-
-echo "KEEPVERITY=$KEEPVERITY" > config
-echo "KEEPFORCEENCRYPT=$KEEPFORCEENCRYPT" >> config
-echo "PATCHVBMETAFLAG=$PATCHVBMETAFLAG" >> config
-echo "RECOVERYMODE=$RECOVERYMODE" >> config
-[ ! -z $SHA1 ] && echo "SHA1=$SHA1" >> config
-
-# Compress to save precious ramdisk space
-SKIP32="#"
-SKIP64="#"
-if [ -f magisk32 ]; then
-  ./bin/magiskboot compress=xz magisk32 magisk32.xz
-  unset SKIP32
-fi
-if [ -f magisk64 ]; then
-  ./bin/magiskboot compress=xz magisk64 magisk64.xz
-  unset SKIP64
-fi
-
-./bin/magiskboot cpio ramdisk.cpio \
-"add 0750 $INIT magiskinit" \
-"mkdir 0750 overlay.d" \
-"mkdir 0750 overlay.d/sbin" \
-"$SKIP32 add 0644 overlay.d/sbin/magisk32.xz magisk32.xz" \
-"$SKIP64 add 0644 overlay.d/sbin/magisk64.xz magisk64.xz" \
-"patch" \
-"backup ramdisk.cpio.orig" \
-"mkdir 000 .backup" \
-"add 000 .backup/.magisk config"
-
-rm -f ramdisk.cpio.orig config magisk*.xz
-
-#################
-# Binary Patches
-#################
-
-for dt in dtb kernel_dtb extra; do
-  [ -f $dt ] && ./bin/magiskboot dtb $dt patch && ui_print "- Patch fstab in $dt"
-done
-
-if [ -f kernel ]; then
-  # Remove Samsung RKP
-  ./bin/magiskboot hexpatch kernel \
-  49010054011440B93FA00F71E9000054010840B93FA00F7189000054001840B91FA00F7188010054 \
-  A1020054011440B93FA00F7140020054010840B93FA00F71E0010054001840B91FA00F7181010054
-
-  # Remove Samsung defex
-  # Before: [mov w2, #-221]   (-__NR_execve)
-  # After:  [mov w2, #-32768]
-  ./bin/magiskboot hexpatch kernel 821B8012 E2FF8F12
-
-  # Force kernel to load rootfs
-  # skip_initramfs -> want_initramfs
-  ./bin/magiskboot hexpatch kernel \
-  736B69705F696E697472616D667300 \
-  77616E745F696E697472616D667300
-fi
-
-#################
-# Repack & Flash
-#################
-
-ui_print "- Repacking boot image"
-./bin/magiskboot repack "$BOOTIMAGE" $output || abort "! Unable to repack boot image"
-
-# Sign chromeos boot
-# $CHROMEOS && sign_chromeos
-
-# Restore the original boot partition path
-[ -e "$BOOTNAND" ] && BOOTIMAGE="$BOOTNAND"
-
-ui_print "Script by affggh"
-# Reset any error code
-true
-
-ui_print "Clean up"
-./bin/magiskboot cleanup
-#-- End of shell script --
-exit
-
-
-:BeginOfBatch
 :: Began of args detection
 set funcs=patch patchondevice autoconfig test
-:: We need certutil extract busybox
 :: cd %~dp0
 :: Add bin to envrionment at once time
 set "Path=%~dp0bin;%Path%"
@@ -462,7 +263,7 @@ if "%1"=="-pv" (
 )
 if "%1"=="-m" set magisk=%2
 if "%1"=="--default" set configdefault=1
-
+if "%1"=="-r" set recoverymode=true
 shift /1
 if not "%1"=="" (
 	goto :GetArgs
@@ -536,6 +337,8 @@ for /r "tmp\lib" %%i in (lib*.so) do (
 	)
 )
 
+if not "!recoverymode!"=="true" set recoverymode=false
+
 :: Show all type
 echo  List your config :
 echo                    Magisk version = !MAGISK_VER!
@@ -543,6 +346,7 @@ echo                    arch=!arch!
 echo                    keepverity=!keepverity!
 echo                    keepforceencrypt=!keepforceencrypt!
 echo                    patchvbmetaflag=!patchvbmetaflag!
+echo                    recoverymode=!recoverymode!
 echo                    magisk=!magisk!
 echo                    input=!input!
 if defined output (
@@ -550,8 +354,15 @@ if defined output (
 ) else (
 	echo                    output=new-boot.img [default]
 )
-
-more +211 %0 | busybox ash -s !input! !keepverity! !keepforceencrypt! !patchvbmetaflag! !output!
+if exist ".\new-boot.img" del /q ".\new-boot.img"
+busybox sh "%~dp0bin\boot_patch.sh" !input! !keepverity! !keepforceencrypt! !patchvbmetaflag! !recoverymode!
+if exist ".\new-boot.img" (
+	if defined output move /y new-boot.img !output!
+	echo Successfully generated...
+) else (
+	echo Failed...
+)
+%~dp0bin\magiskboot cleanup
 set exitcode=%errorlevel%
 goto :EndofBatch
 
@@ -676,6 +487,11 @@ if "!configdefault!"=="1" (
 	busybox printf "keepverity=%%s\n" "!keepverity!" >> config.txt
 	busybox printf "keepforceencrypt=%%s\n" "!keepforceencrypt!" >> config.txt
 	busybox printf "patchvbmetaflag=%%s\n" "!patchvbmetaflag!" >> config.txt
+	if not "!recoverymode!"=="true" (
+		busybox printf "recoverymode=false\n" >> config.txt
+	) else (
+		busybox printf "recoverymode=true\n" >> config.txt
+	)
 	if exist "!magisk!" (
 		busybox printf "magisk=%%s\n" "!magisk!" >> config.txt
 	) else (
@@ -692,7 +508,7 @@ if "!configdefault!"=="1" (
 	)
 ) else (
 	echo Read config from device...
-	call :get-device
+	call :getdevice
 	busybox printf "# var  type\n" > config.txt
 	adb push %~dp0bin\get_config.sh !tmp! >nul
 	adb shell chmod 0755 !tmp!/get_config.sh
@@ -700,6 +516,11 @@ if "!configdefault!"=="1" (
 	adb shell rm -f !tmp!/get_config.sh
 	if not defined magisk set magisk=%~dp0prebuilt\magisk.apk
 	busybox printf "magisk=%%s\n" "!magisk!" >> config.txt
+	if not "!recoverymode!"=="true" (
+		busybox printf "recoverymode=false\n" >> config.txt
+	) else (
+		busybox printf "recoverymode=true\n" >> config.txt
+	)
 	if exist ".\config.txt" (
 		echo Successfully generate config.txt...
 		set exitcode=0
@@ -790,6 +611,8 @@ echo                    If your device not have partition [vbmeta]
 echo                        make it true
 echo  [optional] -m     Choose a Magisk install apk/zip insted of 
 echo                                  default : [prebuilt\magisk.apk]
+echo             -r     image is a recovery image
+echo                    this not work on function : patchondevice
 echo               Notice: Shell script part will auto detect file existance
 echo                       if is a 64bit image.
 echo.
@@ -798,9 +621,11 @@ echo                       and generate a confit.txt at %~dp0
 echo                       without root
 echo             --default  generate with default instead read from device
 echo             -m     Defined custom magisk path
+echo             -r     image is a recovery image
+echo                    this not work on function : patchondevice
 echo.
 echo          patchondevice : patch on device
-echo                     for some reason patch on windows will failed...
+echo                     for some reason patch on windows could be failed...
 echo                     you can run this function patch boot on your device
 echo   Example : 
 echo           %~nx0 patch -i boot.img -c config.txt
