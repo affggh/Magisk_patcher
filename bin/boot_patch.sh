@@ -45,57 +45,46 @@ getdir() {
 }
 
 ui_print() {
-  echo -e "$1\n" 2>&1
+  echo "$1" 2>&1
 }
 
 abort() {
-  echo -e "$1\n" 2>&1
+  echo "$1" 2>&1
   exit 1
 }
 
-sign_chromeos() {
-# function from util_function.sh
-  ui_print "- Signing ChromeOS boot image"
-
-  echo > empty
-  ./bin/chromeos/futility vbutil_kernel --pack new-boot.img.signed \
-  --keyblock ./bin/chromeos/kernel.keyblock --signprivate ./bin/chromeos/kernel_data_key.vbprivk \
-  --version 1 --vmlinuz new-boot.img --config empty --arch arm --bootloader empty --flags 0x1
-
-  rm -f empty new-boot.img
-  mv new-boot.img.signed new-boot.img
-}
 #################
 # Initialization
 #################
-# [ -z STRING ] 如果STRING的长度为零则为真 ，即判断是否为空，空即是真；
-# so we just fill with true
 
-#if [ -z $SOURCEDMODE ]; then
+# Use args instead
+# if [ -z $SOURCEDMODE ]; then
   # Switch to the location of the script file
-  #cd "$(getdir "${BASH_SOURCE:-$0}")"
+  # cd "$(getdir "${BASH_SOURCE:-$0}")"
   # Load utility functions
-  #. ./util_functions.sh
+  # . ./util_functions.sh
   # Check if 64-bit
-  #api_level_arch_detect
-#fi
+  # api_level_arch_detect
+# fi
 
 BOOTIMAGE="$1"
 [ -e "$BOOTIMAGE" ] || abort "$BOOTIMAGE does not exist!"
 
-# Windows does not support nanddump ,its rely on linux kernel
+# Windows does not support nanddump
 # Dump image for MTD/NAND character device boot partitions
-#if [ -c "$BOOTIMAGE" ]; then
+# if [ -c "$BOOTIMAGE" ]; then
 #  nanddump -f boot.img "$BOOTIMAGE"
 #  BOOTNAND="$BOOTIMAGE"
 #  BOOTIMAGE=boot.img
-#fi
+# fi
 
-# Flags
+# add by affggh
 KEEPVERITY=$2
 KEEPFORCEENCRYPT=$3
 PATCHVBMETAFLAG=$4
-RECOVERYMODE=%5
+RECOVERYMODE=$5
+
+# Flags
 [ -z $KEEPVERITY ] && KEEPVERITY=false
 [ -z $KEEPFORCEENCRYPT ] && KEEPFORCEENCRYPT=false
 [ -z $PATCHVBMETAFLAG ] && PATCHVBMETAFLAG=false
@@ -243,7 +232,7 @@ ui_print "- Repacking boot image"
 $CHROMEOS && sign_chromeos
 
 # Restore the original boot partition path
-#[ -e "$BOOTNAND" ] && BOOTIMAGE="$BOOTNAND"
+[ -e "$BOOTNAND" ] && BOOTIMAGE="$BOOTNAND"
 
 # Reset any error code
 true

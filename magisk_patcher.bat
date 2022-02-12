@@ -1,3 +1,6 @@
+@chcp 65001 > nul
+:: Use utf-8 codec
+
 :: Batch script by affggh 879632264@qq.com
 :: Busybox from github compiled by myself. busybox-w32
 :: Shell script Edited from magisk canary flashable apk file...
@@ -286,13 +289,13 @@ if defined config (
 	if not defined keepverity set keepverity=true
 	if not defined keepforceencrypt set keepforceencrypt=true
 	if not defined patchvbmetaflag set patchvbmetaflag=false
-	if not defined magisk set magisk=%~dp0prebuilt\magisk.apk
+	if not defined magisk set magisk=%~dp0prebuilt\Magisk-v24.1.apk
 ) else (
 	echo Not define config file ,use default value
 	if not defined keepverity set keepverity=true
 	if not defined keepforceencrypt set keepforceencrypt=true
 	if not defined patchvbmetaflag set patchvbmetaflag=false
-	if not defined magisk set magisk=%~dp0prebuilt\magisk.apk
+	if not defined magisk set magisk=%~dp0prebuilt\Magisk-v24.1.apk
 )
 if not defined arch (
 	echo Error arch not defined ,script dont know your image type...
@@ -322,6 +325,13 @@ if "!dirsize!" lss "128" (
 		set subarch=x86
 		busybox unzip "!magisk!" -od tmp "lib/!subarch!/*"
 	)
+)
+:: There is an issue we still need magisk32
+if "!arch!"=="arm64-v8a" (
+	busybox unzip "!magisk!" -od tmp "lib/armeabi-v7a/libmagisk32.so"
+)
+if "!arch!"=="x86_64" (
+	busybox unzip "!magisk!" -od tmp "lib/x86/libmagisk32.so"
 )
 
 :: Get magisk version
@@ -358,7 +368,7 @@ if defined output (
 	echo                    output=new-boot.img [default]
 )
 if exist ".\new-boot.img" del /q ".\new-boot.img"
-busybox sh "%~dp0bin\boot_patch.sh" !input! !keepverity! !keepforceencrypt! !patchvbmetaflag! !recoverymode!
+busybox ash "%~dp0bin\boot_patch.sh" !input! !keepverity! !keepforceencrypt! !patchvbmetaflag! !recoverymode!
 if exist ".\new-boot.img" (
 	if defined output move /y new-boot.img !output!
 	echo Successfully generated...
@@ -373,7 +383,7 @@ goto :EndofBatch
 :: in some situation patch on windows will failed or bootloop
 :: script allow your patch with adb on device environment...
 echo Function: : patchondevice
-if not defined magisk set magisk=%~dp0prebuilt\magisk.apk
+if not defined magisk set magisk=%~dp0prebuilt\Magisk-v24.1.apk
 if not exist "!magisk!" (
 	echo file !magisk! not found...
 	echo please check your config or use -m to choose one...
@@ -427,6 +437,14 @@ if "!dirsize!" lss "128" (
 		busybox unzip "!magisk!" -od tmp "lib/!subarch!/*" >nul
 	)
 )
+:: There is an issue we still need magisk32
+if "!arch!"=="arm64-v8a" (
+	busybox unzip "!magisk!" -od tmp "lib/armeabi-v7a/libmagisk32.so"
+)
+if "!arch!"=="x86_64" (
+	busybox unzip "!magisk!" -od tmp "lib/x86/libmagisk32.so"
+)
+
 busybox printf "Done\n"
 busybox printf "Find magisk version : "
 :: Get magisk version
@@ -469,6 +487,7 @@ if exist "new-boot.img" (
 	busybox printf "Failed..."
 	set exitcode=1
 )
+::pause
 busybox printf "Cleanup [!tmp!] and temp files... "
 adb shell rm -rf !tmp!/magisk
 rd /s /q magisk\ 
@@ -484,7 +503,7 @@ if "!configdefault!"=="1" (
 	if not defined keepverity set keepverity=true
 	if not defined keepforceencrypt set keepforceencrypt=true
 	if not defined patchvbmetaflag set patchvbmetaflag=false
-	if not defined magisk set magisk=%~dp0prebuilt\magisk.apk
+	if not defined magisk set magisk=%~dp0prebuilt\Magisk-v24.1.apk
 	busybox printf "# var  type\n" > config.txt 
 	busybox printf "arch=%%s\n" "!arch!" >> config.txt
 	busybox printf "keepverity=%%s\n" "!keepverity!" >> config.txt
@@ -517,7 +536,7 @@ if "!configdefault!"=="1" (
 	adb shell chmod 0755 !tmp!/get_config.sh
 	adb shell sh !tmp!/get_config.sh >> config.txt
 	adb shell rm -f !tmp!/get_config.sh
-	if not defined magisk set magisk=%~dp0prebuilt\magisk.apk
+	if not defined magisk set magisk=%~dp0prebuilt\Magisk-v24.1.apk
 	busybox printf "magisk=%%s\n" "!magisk!" >> config.txt
 	if not "!recoverymode!"=="true" (
 		busybox printf "recoverymode=false\n" >> config.txt
@@ -532,15 +551,15 @@ if "!configdefault!"=="1" (
 		set exitcode=1
 	)
 )
-adb kill-server
+::adb kill-server
 goto :EndofBatch
 
 :getdevice
-tasklist /FI "IMAGENAME eq adb.exe" | findstr "adb.exe" >nul
-if "%errorlevel%"=="0" (
-	rem kill adb.exe service if exist
-	taskkill /F /FI "IMAGENAME eq adb.exe" /IM * >nul
-)
+::tasklist /FI "IMAGENAME eq adb.exe" | findstr "adb.exe" >nul
+::if "%errorlevel%"=="0" (
+::	rem kill adb.exe service if exist
+::	taskkill /F /FI "IMAGENAME eq adb.exe" /IM * >nul
+::)
 for /f "delims=" %%i in ('adb get-state 2^>nul') do set "state=%%i"
 rem remove ' '
 set state=!state: =!
@@ -613,7 +632,7 @@ echo  [optional] -pv    Patch vbmeta flag default is : [false]
 echo                    If your device not have partition [vbmeta]
 echo                        make it true
 echo  [optional] -m     Choose a Magisk install apk/zip insted of 
-echo                                  default : [prebuilt\magisk.apk]
+echo                                  default : [prebuilt\Magisk-v24.1.apk]
 echo             -r     image is a recovery image
 echo                    this not work on function : patchondevice
 echo               Notice: Shell script part will auto detect file existance
@@ -633,11 +652,11 @@ echo                     you can run this function patch boot on your device
 echo   Example : 
 echo           %~nx0 patch -i boot.img -c config.txt
 echo           %~nx0 patch -i boot.img -a armeabi-v7a -kv true -ke true -pv false
-echo           %~nx0 patch -i boot.img -c config.txt -m prebuilt\magisk.apk
+echo           %~nx0 patch -i boot.img -c config.txt -m prebuilt\Magisk-v24.1.apk
 echo.
 echo           %~nx0 autoconfig
 echo           %~nx0 autoconfig --default
-echo           %~nx0 autoconfig -m prebuilt\magisk.apk
+echo           %~nx0 autoconfig -m prebuilt\Magisk-v24.1.apk
 
 goto :eof
 
