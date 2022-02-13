@@ -1,6 +1,14 @@
 # Magisk_patcher
-I've create lots of repositories ,this is the last one...
-# Usage:
+*Patch boot with magisk on windows  
+Batch script support :
+                Windows 7 x86_64  
+GUI script support   :
+                Python 3.7 or newer
+GUI binary support   :
+                Windows 10 x86_64
+# GUI screen shortcut
+![image](https://github.com/affggh/Magisk_patcher/raw/main/bin/gui.png)
+# Command line Usage:
 ***
 ```
   magisk_patcher.bat command
