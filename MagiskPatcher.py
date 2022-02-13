@@ -7,8 +7,9 @@ from tkinter.filedialog import *
 from tkinter import ttk
 from tkinter import *
 import time
+import webbrowser
 
-VERSION = "20220129"
+VERSION = "20220213"
 
 root = tk.Tk()
 root.geometry("640x440")
@@ -29,9 +30,18 @@ keepverity = tk.StringVar()
 keepforceencrypt = tk.StringVar()
 patchvbmetaflag = tk.StringVar()
 mutiseletion = tk.StringVar()
+# For logo
+photo = tk.PhotoImage(file=".\\bin\\logo.png")#file：t图片路径
+# For aboutme
+photo2 = tk.PhotoImage(file=".\\bin\\logo.png")#file：t图片路径
+# For donate QR code
+photo3 = tk.PhotoImage(file=".\\bin\\alipay.png")#file：t图片路径
+photo4 = tk.PhotoImage(file=".\\bin\\wechat.png")#file：t图片路径
 
 global Configflag
 Configflag = 0    # 默认使用第一页的配置
+
+Thanks = 0 # 左下角的贴图说谢谢
 
 def chdir():
     os.chdir(os.path.abspath(os.path.dirname(sys.argv[0])))
@@ -66,8 +76,12 @@ def showinfo(textmsg):
     text.update() # 实时返回信息
     text.yview('end')
 
+
 def cleaninfo():
     text.delete(1.0, END)  # 清空text
+    text.image_create(END,image=photo)
+    text.insert(END,"        Copyright(R) affggh  Apache2.0\n")
+    text.insert(END,"\n        此脚本为免费工具，如果你花钱买了你就是大傻逼\n")
 
 def test():
     showinfo("Testing...")
@@ -150,6 +164,48 @@ def GetDeviceConfig():
         showinfo('\n' + e.output.decode(encoding="utf-8"))
     showinfo(" <<---- 读取设备配置")
 
+def opensource():
+    webbrowser.open("https://github.com/affggh/Magisk_Patcher")
+
+def About():
+    root2 = tk.Toplevel()
+    curWidth = 300
+    curHight = 180
+    # 获取屏幕宽度和高度
+    scn_w, scn_h = root.maxsize()
+    # print(scn_w, scn_h)
+    # 计算中心坐标
+    cen_x = (scn_w - curWidth) / 2
+    cen_y = (scn_h - curHight) / 2
+    # print(cen_x, cen_y)
+
+    # 设置窗口初始大小和位置
+    size_xy = '%dx%d+%d+%d' % (curWidth, curHight, cen_x, cen_y)
+    root2.geometry(size_xy)
+    #root2.geometry("300x180")
+    root2.resizable(0,0) # 设置最大化窗口不可用
+    root2.title("关于脚本和作者信息")
+    aframe1 = Frame(root2, relief=FLAT, borderwidth=1)
+    aframe2 = Frame(root2, relief=FLAT, borderwidth=1)
+    aframe1.pack(side=BOTTOM, expand=YES, pady=3)
+    aframe2.pack(side=BOTTOM, expand=YES, pady=3)
+    tk.Button(aframe1, text='访问项目', width=12, height=1, command=opensource).pack(side=LEFT, expand=YES, padx=5)
+    tk.Label(aframe2, text='脚本编写自affggh\nshell脚本提取修改自Magisk-v24.1安装包\n项目开源地址：github.com/affggh/Magisk_Patcher\n').pack(side=BOTTOM, expand=NO, pady=3)
+    chdir()
+    
+    imgLabe2 = tk.Label(aframe2,image=photo2)#把图片整合到标签类中
+    imgLabe2.pack(side=TOP, expand=YES, pady=3)
+    root2.mainloop()
+
+def donateme():
+    cleaninfo()
+    text.image_create(END,image=photo3)
+    text.image_create(END,image=photo4)
+    global Thanks
+    if Thanks==0:
+        Label(frame4,text='    ----------------------------\n  < 谢谢老板！老板发大财！|\n   ----------------------------').pack(side=LEFT, expand=NO, pady=3)
+        Thanks = 1
+
 # button and text
 # Frame 1  文件选择
 frame1 = LabelFrame(root, text="文件选择", labelanchor="w", relief=FLAT, borderwidth=1)
@@ -228,13 +284,15 @@ frame2_3.pack(side=TOP, expand=NO, pady=2, fill=BOTH)
 # Frame 4 关于 和 清除信息
 frame4 = Frame(root, relief=FLAT, borderwidth=1)
 tk.Button(frame4, text='清空信息', width=12, height=1, command=cleaninfo).pack(side=RIGHT, expand=NO, pady=3)
+tk.Button(frame4, text='关于', width=12, height=1, command=About).pack(side=RIGHT, expand=NO, pady=3)
+tk.Button(frame4, text='给我捐钱', width=12, height=1, command=donateme, bg="red", fg="white", font=('黑体', '14')).pack(side=RIGHT, expand=NO, padx=5)
 frame4.pack(side=TOP, expand=NO, padx=10, ipady=5, fill=BOTH)
-photo = tk.PhotoImage(file=".\\bin\\logo.png")#file：t图片路径
+
 imgLabel = tk.Label(frame4,image=photo)#把图片整合到标签类中
 imgLabel.pack(side=LEFT, expand=NO, pady=3)
 
 text.image_create(END,image=photo)
-text.insert(END,"        Copyright(R) affggh  GPLv3\n")
+text.insert(END,"        Copyright(R) affggh  Apache2.0\n")
 showinfo("欢迎使用我的Magisk修补脚本")
 showinfo("    脚本运行环境：")
 showinfo("                 windows10 x86_64")
@@ -245,4 +303,7 @@ showinfo("高级点：")
 showinfo("自己写个config.txt-->选择config.txt-->修补")
 showinfo("简单点：")
 showinfo("直接选个magisk版本-->插手机-->手机修补\n            （不过配置只能用手机的）")
+text.insert(END,"\n        此脚本为免费工具，如果你花钱买了你就是大傻逼\n")
+
+root.update()
 root.mainloop()

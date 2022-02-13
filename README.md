@@ -64,3 +64,6 @@ magisk_patcher.bat patch -i boot.img -c config.txt
 ```
 magisk_patcher.bat patchondevice -i boot.img -m prebuilt\magisk.apk
 ```
+# Donate me
+![image](https://github.com/affggh/Magisk_patcher/raw/main/bin/alipay.png)
+![image](https://github.com/affggh/Magisk_patcher/raw/main/bin/wechat.png)
