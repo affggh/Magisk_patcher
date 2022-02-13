@@ -72,6 +72,12 @@ magisk_patcher.bat patch -i boot.img -c config.txt
 ```
 magisk_patcher.bat patchondevice -i boot.img -m prebuilt\magisk.apk
 ```
+# Thanks
+感谢：    
+    [thka2016](https://github.com/thka2016) 帮我写了个很好用的功能    
+	[Magisk](https://github.com/topjohnwu/Magisk) 源码来自magisk    
+
 # Donate me
 ![image](https://github.com/affggh/Magisk_patcher/raw/main/bin/alipay.png)
 ![image](https://github.com/affggh/Magisk_patcher/raw/main/bin/wechat.png)
+![image](https://github.com/affggh/Magisk_patcher/raw/main/bin/zfbhb.png)

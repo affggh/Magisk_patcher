@@ -8,11 +8,12 @@ from tkinter import ttk
 from tkinter import *
 import time
 import webbrowser
+import threading
 
 VERSION = "20220213"
 
 root = tk.Tk()
-root.geometry("640x440")
+root.geometry("720x440")
 
 root.resizable(0,0) # 设置最大化窗口不可用
 root.title("Magisk Patcher by 酷安 affggh    " + "版本号 : %s" %(VERSION))
@@ -37,6 +38,7 @@ photo2 = tk.PhotoImage(file=".\\bin\\logo.png")#file：t图片路径
 # For donate QR code
 photo3 = tk.PhotoImage(file=".\\bin\\alipay.png")#file：t图片路径
 photo4 = tk.PhotoImage(file=".\\bin\\wechat.png")#file：t图片路径
+photo5 = tk.PhotoImage(file=".\\bin\\zfbhb.png")#file：t图片路径
 
 global Configflag
 Configflag = 0    # 默认使用第一页的配置
@@ -201,23 +203,90 @@ def donateme():
     cleaninfo()
     text.image_create(END,image=photo3)
     text.image_create(END,image=photo4)
+    text.image_create(END,image=photo5)
     global Thanks
     if Thanks==0:
         Label(frame4,text='    ----------------------------\n  < 谢谢老板！老板发大财！|\n   ----------------------------').pack(side=LEFT, expand=NO, pady=3)
         Thanks = 1
 
+def color(value):
+  digit = list(map(str, range(10))) + list("ABCDEF")
+  if isinstance(value, tuple):
+    string = '#'
+    for i in value:
+      a1 = i // 16
+      a2 = i % 16
+      string += digit[a1] + digit[a2]
+    return string
+  elif isinstance(value, str):
+    a1 = digit.index(value[1]) * 16 + digit.index(value[2])
+    a2 = digit.index(value[3]) * 16 + digit.index(value[4])
+    a3 = digit.index(value[5]) * 16 + digit.index(value[6])
+    return (a1, a2, a3)
+
+def colorfuldonate():
+    button = tk.Button(frame41, text='给我捐钱', width=12, height=1, command=donateme, bg="red", fg="white", font=('黑体', '14'))
+    button.grid(row=0, column=1, padx=3, pady=0)
+    while(True):
+        r = 255
+        g = 0
+        b = 0
+        for c in range(255):
+            r = r-1
+            g = g+1
+            button.configure(bg=color((r,g,b)))
+            time.sleep(0.000001)
+        for c in range(255):
+            g = g-1
+            b = b+1
+            button.configure(bg=color((r,g,b)))
+            time.sleep(0.000001)
+        for c in range(255):
+            b = b-1
+            r = r+1
+            button.configure(bg=color((r,g,b)))
+            time.sleep(0.000001)
+
+def pointdonate():
+    lab = tk.Label(frame41, text='<<点我', font=('黑体', '14'))
+    lab.grid(row=0, column=2, padx=2, pady=0)
+    while(True):
+        lab.configure(bg='#FFFF00',fg='#000000')
+        time.sleep(0.1)
+        lab.configure(bg='#9400D3',fg='#FFFFFF')
+        time.sleep(0.1)
+
+def pointdonate2():
+    lab = tk.Label(frame41, text='点我>>', font=('黑体', '14'))
+    lab.grid(row=0, column=0, padx=2, pady=0)
+    while(True):
+        lab.configure(bg='#FFFF00',fg='#000000')
+        time.sleep(0.1)
+        lab.configure(bg='#9400D3',fg='#FFFFFF')
+        time.sleep(0.1)
+
+def pdp():
+    th2=threading.Thread(target=pointdonate)
+    th2.setDaemon(True)#守护线程
+    th2.start()
+    th=threading.Thread(target=colorfuldonate)
+    th.setDaemon(True)#守护线程
+    th.start()
+    th3=threading.Thread(target=pointdonate2)
+    th3.setDaemon(True)#守护线程
+    th3.start()
 # button and text
 # Frame 1  文件选择
 frame1 = LabelFrame(root, text="文件选择", labelanchor="w", relief=FLAT, borderwidth=1)
 frame1.pack(side=TOP, fill=BOTH, padx=6, pady=3, expand=NO)
 # tk.Label(frame1, text='选择文件').pack(side=LEFT)
-tk.Entry(frame1, width=70,textvariable=filename).pack(side=LEFT, padx=10)
+tk.Entry(frame1, width=82,textvariable=filename).pack(side=LEFT, padx=10)
 tk.Button(frame1, text='选择文件', command=selectFile).pack(side=LEFT)
 # 
 frame2_3 = Frame(root, relief=FLAT)
 # Frame 2 功能页面
 frame2 = LabelFrame(frame2_3, text="功能页面", labelanchor="n", relief=SUNKEN, borderwidth=1)
-frame2.pack(side=LEFT, fill=BOTH, padx=2, pady=3, expand=YES)
+frame2.pack(side=LEFT, fill=BOTH, padx=2, pady=3, expand=NO)
 tabControl = ttk.Notebook(frame2)
 tab1 = tk.Frame(tabControl,bg='blue')  #增加新选项卡
 tab11 = tk.Frame(tab1,bg='red')
@@ -271,7 +340,7 @@ tabControl.pack(side=TOP, expand=YES, fill="both")
 
 # Frame 3  信息展示 功能页面
 frame3 = LabelFrame(frame2_3, text="信息反馈", labelanchor="nw", relief=SUNKEN, borderwidth=1)
-frame3.pack(side=RIGHT, fill=BOTH, padx=2, pady=3, expand=NO)
+frame3.pack(side=RIGHT, fill=BOTH, padx=2, pady=3, expand=YES)
 text = Text(frame3,width=70,height=15)
 scroll = Scrollbar(frame3)
 scroll.pack(side=RIGHT,fill=Y, padx=1, pady=5)
@@ -282,10 +351,13 @@ frame2_3.pack(side=TOP, expand=NO, pady=2, fill=BOTH)
 
 
 # Frame 4 关于 和 清除信息
-frame4 = Frame(root, relief=FLAT, borderwidth=1)
+frame4 = Frame(root, relief=FLAT)
 tk.Button(frame4, text='清空信息', width=12, height=1, command=cleaninfo).pack(side=RIGHT, expand=NO, pady=3)
 tk.Button(frame4, text='关于', width=12, height=1, command=About).pack(side=RIGHT, expand=NO, pady=3)
-tk.Button(frame4, text='给我捐钱', width=12, height=1, command=donateme, bg="red", fg="white", font=('黑体', '14')).pack(side=RIGHT, expand=NO, padx=5)
+# 超炫的捐赠按钮
+frame41 = Frame(frame4, relief=FLAT)
+pdp()
+frame41.pack(side=RIGHT, expand=NO, pady=3)
 frame4.pack(side=TOP, expand=NO, padx=10, ipady=5, fill=BOTH)
 
 imgLabel = tk.Label(frame4,image=photo)#把图片整合到标签类中
