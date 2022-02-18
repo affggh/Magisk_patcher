@@ -348,8 +348,12 @@ tk.Button(tab2, text='连接设备环境\n修 补', width=12, height=3, command=
 tk.Label(tab2, text='使用设备环境修补不需要\n配置各种参数\n配置来源与设备').pack(side=BOTTOM, expand=NO, pady=3)
 tk.Label(tab2, text='选择Magisk版本').pack(side=TOP, expand=NO, pady=3)
 comboxlist = ttk.Combobox(tab2, textvariable=mutiseletion, width=14)
-comboxlist["values"]=(listdir(".\\prebuilt")) 
-comboxlist.current(0) # 选择第一个
+filelist = listdir(".\\prebuilt")
+comboxlist["values"]=(filelist)
+if(filename):
+    comboxlist.current(0) # 选择第一个
+else:
+    showinfo("Error : 没有找到Magisk安装包，请确保prebuilt目录下存在apk文件")
 comboxlist.bind("<<ComboboxSelected>>",select)
 comboxlist.pack(side=TOP, expand=NO, pady=3)
 tabControl.add(tab2, text='修补')  #把新选项卡增加到Notebook
