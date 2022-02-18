@@ -1,5 +1,13 @@
 @chcp 65001 > nul
 :: Use utf-8 codec
+
+:: Batch script by affggh 879632264@qq.com
+:: Busybox from github compiled by myself. busybox-w32
+:: Shell script Edited from magisk canary flashable apk file...
+:: magiskboot for cygwin64 is based on magisk source 20220127...also compiled by myself
+
+:: This script based on Apache 2.0 License
+
 :: Begin of Batch
 
 @echo off & setlocal enabledelayedexpansion 
