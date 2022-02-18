@@ -24,6 +24,12 @@ def logo():
 
 logo()
 
+# Frame 这里都用到了外部命令导致卡顿，子进程运行来缓解
+frame2_3 = Frame(root, relief=FLAT)
+frame2 = LabelFrame(frame2_3, text="功能页面", labelanchor="n", relief=SUNKEN, borderwidth=1)
+frame3 = LabelFrame(frame2_3, text="信息反馈", labelanchor="nw", relief=SUNKEN, borderwidth=1)
+text = Text(frame3,width=70,height=15) # 信息展示
+
 filename = tk.StringVar()
 configname = tk.StringVar()
 arch = tk.StringVar()
@@ -275,6 +281,24 @@ def pdp():
     th3=threading.Thread(target=pointdonate2)
     th3.setDaemon(True)#守护线程
     th3.start()
+
+def thrun(fun):  # 调用子线程跑功能，防止卡住
+    showinfo("Test threading...")
+    th=threading.Thread(target=fun)
+    th.setDaemon(True)
+    th.start()
+
+def listdir(path):
+    L=[] 
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if os.path.splitext(file)[1] == '.apk':
+                tmp = os.path.join(root, file)
+                tmp = tmp.replace('.apk','')
+                tmp = tmp.replace('.\\prebuilt\\','')
+                L.append(tmp)
+    return L
+
 # button and text
 # Frame 1  文件选择
 frame1 = LabelFrame(root, text="文件选择", labelanchor="w", relief=FLAT, borderwidth=1)
@@ -283,13 +307,13 @@ frame1.pack(side=TOP, fill=BOTH, padx=6, pady=3, expand=NO)
 tk.Entry(frame1, width=82,textvariable=filename).pack(side=LEFT, padx=10)
 tk.Button(frame1, text='选择文件', command=selectFile).pack(side=LEFT)
 # 
-frame2_3 = Frame(root, relief=FLAT)
+
 # Frame 2 功能页面
-frame2 = LabelFrame(frame2_3, text="功能页面", labelanchor="n", relief=SUNKEN, borderwidth=1)
+
 frame2.pack(side=LEFT, fill=BOTH, padx=2, pady=3, expand=NO)
 tabControl = ttk.Notebook(frame2)
-tab1 = tk.Frame(tabControl,bg='blue')  #增加新选项卡
-tab11 = tk.Frame(tab1,bg='red')
+tab1 = tk.Frame(tabControl)  #增加新选项卡
+tab11 = tk.Frame(tab1)
 tab111 = tk.LabelFrame(tab11, text="镜像架构", labelanchor="n", relief=SUNKEN, borderwidth=1)
 tab111.pack(side=TOP, expand=NO, fill=BOTH)
 arch.set("arm64")
@@ -324,24 +348,25 @@ tk.Button(tab2, text='连接设备环境\n修 补', width=12, height=3, command=
 tk.Label(tab2, text='使用设备环境修补不需要\n配置各种参数\n配置来源与设备').pack(side=BOTTOM, expand=NO, pady=3)
 tk.Label(tab2, text='选择Magisk版本').pack(side=TOP, expand=NO, pady=3)
 comboxlist = ttk.Combobox(tab2, textvariable=mutiseletion, width=14)
-comboxlist["values"]=("Magisk-v24.1","Magisk-v24.0","Magisk-v23.0","Magisk-v22.1") 
+comboxlist["values"]=(listdir(".\\prebuilt")) 
 comboxlist.current(0) # 选择第一个
 comboxlist.bind("<<ComboboxSelected>>",select)
 comboxlist.pack(side=TOP, expand=NO, pady=3)
 tabControl.add(tab2, text='修补')  #把新选项卡增加到Notebook
 
 tab3 = tk.Frame(tabControl)  #增加新选项卡
-tk.Button(tab3, text='生成默认配置\nconfig.txt', width=12, height=3, command=GenDefaultConfig).pack(side=TOP, expand=NO, pady=3)
-tk.Button(tab3, text='读取设备配置\nconfig.txt', width=12, height=3, command=GetDeviceConfig).pack(side=TOP, expand=NO, pady=3)
+tk.Button(tab3, text='生成默认配置\nconfig.txt', width=12, height=3, command=lambda:thrun(GenDefaultConfig)).pack(side=TOP, expand=NO, pady=3)
+tk.Button(tab3, text='读取设备配置\nconfig.txt', width=12, height=3, command=lambda:thrun(GetDeviceConfig)).pack(side=TOP, expand=NO, pady=3)
+# tk.Button(tab3, text='test', width=12, height=3, command=lambda:thrun(PatchonWindows)).pack(side=TOP, expand=NO, pady=3)
 tabControl.add(tab3, text='读取')  #把新选项卡增加到Notebook
 tab12.pack(side=TOP, expand=NO, fill=BOTH)
 tabControl.pack(side=TOP, expand=YES, fill="both")
 
 
 # Frame 3  信息展示 功能页面
-frame3 = LabelFrame(frame2_3, text="信息反馈", labelanchor="nw", relief=SUNKEN, borderwidth=1)
+
 frame3.pack(side=RIGHT, fill=BOTH, padx=2, pady=3, expand=YES)
-text = Text(frame3,width=70,height=15)
+
 scroll = Scrollbar(frame3)
 scroll.pack(side=RIGHT,fill=Y, padx=1, pady=5)
 text.pack(side=RIGHT, expand=YES, fill=BOTH, padx=5 ,pady=1)
@@ -356,7 +381,7 @@ tk.Button(frame4, text='清空信息', width=12, height=1, command=cleaninfo).pa
 tk.Button(frame4, text='关于', width=12, height=1, command=About).pack(side=RIGHT, expand=NO, pady=3)
 # 超炫的捐赠按钮
 frame41 = Frame(frame4, relief=FLAT)
-pdp()
+#pdp()
 frame41.pack(side=RIGHT, expand=NO, pady=3)
 frame4.pack(side=TOP, expand=NO, padx=10, ipady=5, fill=BOTH)
 
