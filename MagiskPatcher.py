@@ -385,7 +385,7 @@ tk.Button(frame4, text='清空信息', width=12, height=1, command=cleaninfo).pa
 tk.Button(frame4, text='关于', width=12, height=1, command=About).pack(side=RIGHT, expand=NO, pady=3)
 # 超炫的捐赠按钮
 frame41 = Frame(frame4, relief=FLAT)
-#pdp()
+pdp()
 frame41.pack(side=RIGHT, expand=NO, pady=3)
 frame4.pack(side=TOP, expand=NO, padx=10, ipady=5, fill=BOTH)
 
