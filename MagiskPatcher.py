@@ -1,4 +1,5 @@
 # 脚本 by affggh
+# Apcache 2.0 
 import os
 import sys
 import subprocess
@@ -15,10 +16,38 @@ import win32gui, win32con
 the_program_to_hide = win32gui.GetForegroundWindow()
 win32gui.ShowWindow(the_program_to_hide, win32con.SW_HIDE)
 
-VERSION = "20220213"
+VERSION = "20220304"
+# Read config from GUIcfg.txt
+configPath = ".\\bin\\GUIcfg.txt"
+with open(configPath, "r") as file:
+    for line in file.readlines():
+        if((line.split('=', 1)[0]) == "THEME"):
+            THEME = line.split('=', 1)[1]
+            THEME = THEME.replace('\n', '')
+            if(THEME!="dark") or (THEME!="light"): # 防止手贱改成别的导致主题爆炸
+                THEME="light"
+        if((line.split('=', 1)[0]) == "DONATE_BUTTON"):
+            SHOW_DONATE_BUTTON = line.split('=', 1)[1]
+            SHOW_DONATE_BUTTON = SHOW_DONATE_BUTTON.replace('\n', '') #显示捐赠按钮
+
+#print(THEME)
+#print(SHOW_DONATE_BUTTON)
 
 root = tk.Tk()
-root.geometry("720x440")
+root.geometry("750x470")
+
+# Set the initial theme
+root.tk.call("source", "sun-valley.tcl")
+root.tk.call("set_theme", THEME)
+
+def change_theme():
+    # NOTE: The theme's real name is sun-valley-<mode>
+    if root.tk.call("ttk::style", "theme", "use") == "sun-valley-dark":
+        # Set light theme
+        root.tk.call("set_theme", "light")
+    else:
+        # Set dark theme
+        root.tk.call("set_theme", "dark")
 
 root.resizable(0,0) # 设置最大化窗口不可用
 root.title("Magisk Patcher by 酷安 affggh    " + "版本号 : %s" %(VERSION))
@@ -31,8 +60,8 @@ logo()
 
 # Frame 这里都用到了外部命令导致卡顿，子进程运行来缓解
 frame2_3 = Frame(root, relief=FLAT)
-frame2 = LabelFrame(frame2_3, text="功能页面", labelanchor="n", relief=SUNKEN, borderwidth=1)
-frame3 = LabelFrame(frame2_3, text="信息反馈", labelanchor="nw", relief=SUNKEN, borderwidth=1)
+frame2 = ttk.LabelFrame(frame2_3, text="功能页面", labelanchor="n", relief=SUNKEN, borderwidth=1)
+frame3 = ttk.LabelFrame(frame2_3, text="信息反馈", labelanchor="nw", relief=SUNKEN, borderwidth=1)
 text = Text(frame3,width=70,height=15) # 信息展示
 
 filename = tk.StringVar()
@@ -202,11 +231,11 @@ def About():
     aframe2 = Frame(root2, relief=FLAT, borderwidth=1)
     aframe1.pack(side=BOTTOM, expand=YES, pady=3)
     aframe2.pack(side=BOTTOM, expand=YES, pady=3)
-    tk.Button(aframe1, text='访问项目', width=12, height=1, command=opensource).pack(side=LEFT, expand=YES, padx=5)
-    tk.Label(aframe2, text='脚本编写自affggh\nshell脚本提取修改自Magisk-v24.1安装包\n项目开源地址：github.com/affggh/Magisk_Patcher\n').pack(side=BOTTOM, expand=NO, pady=3)
+    ttk.Button(aframe1, text='访问项目', command=opensource).pack(side=LEFT, expand=YES, padx=5)
+    ttk.Label(aframe2, text='脚本编写自affggh\nshell脚本提取修改自Magisk-v24.1安装包\n项目开源地址：github.com/affggh/Magisk_Patcher\n').pack(side=BOTTOM, expand=NO, pady=3)
     chdir()
     
-    imgLabe2 = tk.Label(aframe2,image=photo2)#把图片整合到标签类中
+    imgLabe2 = ttk.Label(aframe2,image=photo2)#把图片整合到标签类中
     imgLabe2.pack(side=TOP, expand=YES, pady=3)
     root2.mainloop()
 
@@ -307,51 +336,51 @@ def listdir(path):
 # button and text
 # Frame 1  文件选择
 frame1 = LabelFrame(root, text="文件选择", labelanchor="w", relief=FLAT, borderwidth=1)
-frame1.pack(side=TOP, fill=BOTH, padx=6, pady=3, expand=NO)
+frame1.pack(side=TOP, fill=BOTH, padx=6, pady=8, expand=NO)
 # tk.Label(frame1, text='选择文件').pack(side=LEFT)
-tk.Entry(frame1, width=82,textvariable=filename).pack(side=LEFT, padx=10)
-tk.Button(frame1, text='选择文件', command=selectFile).pack(side=LEFT)
+ttk.Entry(frame1, width=80,textvariable=filename).pack(side=LEFT, padx=10)
+ttk.Button(frame1, text='选择文件', command=selectFile).pack(side=LEFT)
 # 
 
 # Frame 2 功能页面
 
 frame2.pack(side=LEFT, fill=BOTH, padx=2, pady=3, expand=NO)
 tabControl = ttk.Notebook(frame2)
-tab1 = tk.Frame(tabControl)  #增加新选项卡
-tab11 = tk.Frame(tab1)
-tab111 = tk.LabelFrame(tab11, text="镜像架构", labelanchor="n", relief=SUNKEN, borderwidth=1)
+tab1 = ttk.Frame(tabControl)  #增加新选项卡
+tab11 = ttk.Frame(tab1)
+tab111 = ttk.LabelFrame(tab11, text="镜像架构", labelanchor="n", relief=SUNKEN, borderwidth=1)
 tab111.pack(side=TOP, expand=NO, fill=BOTH)
 arch.set("arm64")
-tk.Radiobutton(tab111, text='arm',variable=arch, value='arm').grid(row=0, column=0, padx=0, pady=0)
-tk.Radiobutton(tab111, text='arm64',variable=arch, value='arm64').grid(row=0, column=1, padx=0, pady=0)
-tk.Radiobutton(tab111, text='x86',variable=arch, value='x86').grid(row=1, column=0, padx=0, pady=0)
-tk.Radiobutton(tab111, text='x86_64',variable=arch, value='x86_64').grid(row=1, column=1, padx=0, pady=0)
-tab112 = tk.LabelFrame(tab11, text="保持验证", labelanchor="n", relief=SUNKEN, borderwidth=1)
+ttk.Radiobutton(tab111, text='arm',variable=arch, value='arm').grid(row=0, column=0, padx=0, pady=0)
+ttk.Radiobutton(tab111, text='arm64',variable=arch, value='arm64').grid(row=0, column=1, padx=0, pady=0)
+ttk.Radiobutton(tab111, text='x86',variable=arch, value='x86').grid(row=1, column=0, padx=0, pady=0)
+ttk.Radiobutton(tab111, text='x86_64',variable=arch, value='x86_64').grid(row=1, column=1, padx=0, pady=0)
+tab112 = ttk.LabelFrame(tab11, text="保持验证", labelanchor="n", relief=SUNKEN, borderwidth=1)
 tab112.pack(side=TOP, expand=YES, fill=BOTH)
 keepverity.set("true")
-tk.Radiobutton(tab112, text='是',variable=keepverity, value='true').grid(row=0, column=0, padx=0, pady=0)
-tk.Radiobutton(tab112, text='否',variable=keepverity, value='false').grid(row=0, column=1, padx=10, pady=0)
-tab113 = tk.LabelFrame(tab11, text="保持强制加密", labelanchor="n", relief=SUNKEN, borderwidth=1)
+ttk.Radiobutton(tab112, text='是',variable=keepverity, value='true').grid(row=0, column=0, padx=0, pady=0)
+ttk.Radiobutton(tab112, text='否',variable=keepverity, value='false').grid(row=0, column=1, padx=10, pady=0)
+tab113 = ttk.LabelFrame(tab11, text="保持强制加密", labelanchor="n", relief=SUNKEN, borderwidth=1)
 tab113.pack(side=TOP, expand=YES, fill=BOTH)
 keepforceencrypt.set("true")
-tk.Radiobutton(tab113, text='是',variable=keepforceencrypt, value='true').grid(row=0, column=0, padx=0, pady=0)
-tk.Radiobutton(tab113, text='否',variable=keepforceencrypt, value='false').grid(row=0, column=1, padx=10, pady=0)
-tab113 = tk.LabelFrame(tab11, text="修补vbmeta标志", labelanchor="n", relief=SUNKEN, borderwidth=1)
+ttk.Radiobutton(tab113, text='是',variable=keepforceencrypt, value='true').grid(row=0, column=0, padx=0, pady=0)
+ttk.Radiobutton(tab113, text='否',variable=keepforceencrypt, value='false').grid(row=0, column=1, padx=10, pady=0)
+tab113 = ttk.LabelFrame(tab11, text="修补vbmeta标志", labelanchor="n", relief=SUNKEN, borderwidth=1)
 tab113.pack(side=TOP, expand=YES, fill=BOTH)
 patchvbmetaflag.set("false")
-tk.Radiobutton(tab113, text='是',variable=patchvbmetaflag, value='true').grid(row=0, column=0, padx=0, pady=0)
-tk.Radiobutton(tab113, text='否',variable=patchvbmetaflag, value='false').grid(row=0, column=1, padx=10, pady=0)
-tab12 = tk.Frame(tab1)
+ttk.Radiobutton(tab113, text='是',variable=patchvbmetaflag, value='true').grid(row=0, column=0, padx=0, pady=0)
+ttk.Radiobutton(tab113, text='否',variable=patchvbmetaflag, value='false').grid(row=0, column=1, padx=10, pady=0)
+tab12 = ttk.Frame(tab1)
 tab11.pack(side=TOP, expand=YES, fill=BOTH)
-tk.Button(tab12, text='确认配置', width=12, height=1, command=confirmConfig).pack(side=TOP, expand=YES, pady=3)
-tk.Button(tab12, text='指定config.txt', width=12, height=1, command=selectConfig).pack(side=TOP, expand=YES, pady=2)
+ttk.Button(tab12, text='确认配置', command=confirmConfig).pack(side=TOP, expand=YES, pady=3)
+ttk.Button(tab12, text='指定config.txt', command=selectConfig).pack(side=TOP, expand=YES, pady=2)
 tabControl.add(tab1, text='配置')  #把新选项卡增加到Notebook
 
-tab2 = tk.Frame(tabControl)  #增加新选项卡
-tk.Button(tab2, text='Windows环境\n修 补', width=12, height=3, command=PatchonWindows).pack(side=TOP, expand=NO, pady=3)
-tk.Button(tab2, text='连接设备环境\n修 补', width=12, height=3, command=PatchonDevice).pack(side=TOP, expand=NO, pady=3)
-tk.Label(tab2, text='使用设备环境修补不需要\n配置各种参数\n配置来源与设备').pack(side=BOTTOM, expand=NO, pady=3)
-tk.Label(tab2, text='选择Magisk版本').pack(side=TOP, expand=NO, pady=3)
+tab2 = ttk.Frame(tabControl)  #增加新选项卡
+ttk.Button(tab2, text='Windows环境\n修 补', command=PatchonWindows).pack(side=TOP, expand=NO, pady=3)
+ttk.Button(tab2, text='连接设备环境\n修 补', command=PatchonDevice).pack(side=TOP, expand=NO, pady=3)
+ttk.Label(tab2, text='使用设备环境修补不需要\n配置各种参数\n配置来源与设备').pack(side=BOTTOM, expand=NO, pady=3)
+ttk.Label(tab2, text='选择Magisk版本').pack(side=TOP, expand=NO, pady=3)
 comboxlist = ttk.Combobox(tab2, textvariable=mutiseletion, width=14)
 filelist = listdir(".\\prebuilt")
 comboxlist["values"]=(filelist)
@@ -364,8 +393,8 @@ comboxlist.pack(side=TOP, expand=NO, pady=3)
 tabControl.add(tab2, text='修补')  #把新选项卡增加到Notebook
 
 tab3 = tk.Frame(tabControl)  #增加新选项卡
-tk.Button(tab3, text='生成默认配置\nconfig.txt', width=12, height=3, command=lambda:thrun(GenDefaultConfig)).pack(side=TOP, expand=NO, pady=3)
-tk.Button(tab3, text='读取设备配置\nconfig.txt', width=12, height=3, command=lambda:thrun(GetDeviceConfig)).pack(side=TOP, expand=NO, pady=3)
+ttk.Button(tab3, text='生成默认配置\nconfig.txt', command=lambda:thrun(GenDefaultConfig)).pack(side=TOP, expand=NO, pady=3)
+ttk.Button(tab3, text='读取设备配置\nconfig.txt', command=lambda:thrun(GetDeviceConfig)).pack(side=TOP, expand=NO, pady=3)
 # tk.Button(tab3, text='test', width=12, height=3, command=lambda:thrun(PatchonWindows)).pack(side=TOP, expand=NO, pady=3)
 tabControl.add(tab3, text='读取')  #把新选项卡增加到Notebook
 tab12.pack(side=TOP, expand=NO, fill=BOTH)
@@ -376,7 +405,7 @@ tabControl.pack(side=TOP, expand=YES, fill="both")
 
 frame3.pack(side=RIGHT, fill=BOTH, padx=2, pady=3, expand=YES)
 
-scroll = Scrollbar(frame3)
+scroll = ttk.Scrollbar(frame3)
 scroll.pack(side=RIGHT,fill=Y, padx=1, pady=5)
 text.pack(side=RIGHT, expand=YES, fill=BOTH, padx=5 ,pady=1)
 scroll.config(command=text.yview)
@@ -386,15 +415,17 @@ frame2_3.pack(side=TOP, expand=NO, pady=2, fill=BOTH)
 
 # Frame 4 关于 和 清除信息
 frame4 = Frame(root, relief=FLAT)
-tk.Button(frame4, text='清空信息', width=12, height=1, command=cleaninfo).pack(side=RIGHT, expand=NO, pady=3)
-tk.Button(frame4, text='关于', width=12, height=1, command=About).pack(side=RIGHT, expand=NO, pady=3)
-# 超炫的捐赠按钮
-frame41 = Frame(frame4, relief=FLAT)
-pdp()
-frame41.pack(side=RIGHT, expand=NO, pady=3)
+ttk.Button(frame4, text='清空信息', command=cleaninfo).pack(side=RIGHT, expand=NO, pady=3)
+ttk.Button(frame4, text='关于', command=About).pack(side=RIGHT, expand=NO, pady=3)
+ttk.Button(frame4, text='切换主题', command=change_theme).pack(side=RIGHT, expand=NO, pady=3)
+if(SHOW_DONATE_BUTTON!="False"):
+    # 超炫的捐赠按钮
+    frame41 = Frame(frame4, relief=FLAT)
+    pdp()
+    frame41.pack(side=RIGHT, expand=NO, pady=3)
 frame4.pack(side=TOP, expand=NO, padx=10, ipady=5, fill=BOTH)
 
-imgLabel = tk.Label(frame4,image=photo)#把图片整合到标签类中
+imgLabel = ttk.Label(frame4,image=photo)#把图片整合到标签类中
 imgLabel.pack(side=LEFT, expand=NO, pady=3)
 
 text.image_create(END,image=photo)

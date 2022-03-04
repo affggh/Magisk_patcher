@@ -8,6 +8,8 @@ GUI binary support   :
                 Windows 10 x86_64  
 # GUI screen shortcut
 ![image](https://github.com/affggh/Magisk_patcher/raw/main/bin/gui.png)
+# GUI THEME
+GUI ttk THEME from [Sun-Valley-ttk-theme](https://github.com/rdbende/Sun-Valley-ttk-theme)
 # Command line Usage:
 ***
 ```
