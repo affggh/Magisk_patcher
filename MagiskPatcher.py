@@ -118,6 +118,20 @@ def showinfo(textmsg):
     text.update() # 实时返回信息
     text.yview('end')
 
+def runcmd(cmd):
+    try:
+        ret = subprocess.Popen(cmd, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        for i in iter(ret.stdout.readline, b''):
+            showinfo(i.strip().decode("UTF-8"))
+    except subprocess.CalledProcessError as e:
+        for i in iter(e.stdout.readline,b''):
+            showinfo(i.strip().decode("UTF-8"))
+
+def thrun(fun):  # 调用子线程跑功能，防止卡住
+    # showinfo("Test threading...")
+    th=threading.Thread(target=fun)
+    th.setDaemon(True)
+    th.start()
 
 def cleaninfo():
     text.delete(1.0, END)  # 清空text
@@ -164,46 +178,30 @@ def select(*args):
 def PatchonWindows():
     showinfo(" ---->> 修补开始")
     if(Configflag==1):
-        try:
-            cmd = subprocess.check_output(['.\\magisk_patcher.bat','patch','-i','%s' %(filename.get()),'-c','%s' %(configname.get())], shell=False,stderr=subprocess.STDOUT)
-            showinfo('\n' + cmd.decode(encoding="utf-8"))
-        except subprocess.CalledProcessError as e:
-            showinfo('\n' + e.output.decode(encoding="utf-8"))
+        cmd = ['.\\magisk_patcher.bat','patch','-i','%s' %(filename.get()),'-c','%s' %(configname.get())]
     else:
-        try:
-            cmd = subprocess.check_output(['.\\magisk_patcher.bat','patch','-i','%s' %(filename.get()),'-a','%s' %(arch.get()),'-kv','%s' %(keepverity.get()),'-ke','%s' %(keepforceencrypt.get()),'-pv','%s' %(patchvbmetaflag.get()),'-m','.\\prebuilt\\%s.apk' %(mutiseletion.get())], shell=False,stderr=subprocess.STDOUT)
-            showinfo('\n' + cmd.decode(encoding="utf-8"))
-        except subprocess.CalledProcessError as e:
-            showinfo('\n' + e.output.decode(encoding="utf-8"))
+        cmd = ['.\\magisk_patcher.bat','patch','-i','%s' %(filename.get()),'-a','%s' %(arch.get()),'-kv','%s' %(keepverity.get()),'-ke','%s' %(keepforceencrypt.get()),'-pv','%s' %(patchvbmetaflag.get()),'-m','.\\prebuilt\\%s.apk' %(mutiseletion.get())]
+    thrun(runcmd(cmd)) # 调用子线程运行减少卡顿
     showinfo(" <<--- 修补结束")
 
 def PatchonDevice():
     showinfo(" ---->> 使用设备环境修补开始")
     showinfo("    本功能信息回馈较慢，请耐心等待...")
-    try:
-        cmd = subprocess.check_output(['.\\magisk_patcher.bat','patchondevice','-i','%s' %(filename.get()),'-m','.\\prebuilt\\%s.apk' %(mutiseletion.get())], shell=False,stderr=subprocess.STDOUT)
-        showinfo('\n' + cmd.decode(encoding="utf-8"))
-    except subprocess.CalledProcessError as e:
-        showinfo('\n' + e.output.decode(encoding="utf-8"))
+    cmd = ['.\\magisk_patcher.bat','patchondevice','-i','%s' %(filename.get()),'-m','.\\prebuilt\\%s.apk' %(mutiseletion.get())]
+    thrun(runcmd(cmd))
     showinfo(" <<---- 使用设备环境修补结束")
 
 def GenDefaultConfig():
     showinfo(" ---->> 生成默认配置")
-    try:
-        cmd = subprocess.check_output(['.\\magisk_patcher.bat','autoconfig','--default','-m','.\\prebuilt\\%s.apk' %(mutiseletion.get())], shell=False,stderr=subprocess.STDOUT)
-        showinfo('\n' + cmd.decode(encoding="utf-8"))
-    except subprocess.CalledProcessError as e:
-        showinfo('\n' + e.output.decode(encoding="utf-8"))
+    cmd = ['.\\magisk_patcher.bat','autoconfig','--default','-m','.\\prebuilt\\%s.apk' %(mutiseletion.get())]
+    thrun(runcmd(cmd))
     showinfo(" <<---- 生成默认配置")
 
 def GetDeviceConfig():
     showinfo(" ---->> 读取设备配置")
     showinfo("    根据设备不同，生成速度也不同...请稍等...")
-    try:
-        cmd = subprocess.check_output(['.\\magisk_patcher.bat','autoconfig','-m','.\\prebuilt\\%s.apk' %(mutiseletion.get())], shell=False,stderr=subprocess.STDOUT)
-        showinfo('\n' + cmd.decode(encoding="utf-8"))
-    except subprocess.CalledProcessError as e:
-        showinfo('\n' + e.output.decode(encoding="utf-8"))
+    cmd = ['.\\magisk_patcher.bat','autoconfig','-m','.\\prebuilt\\%s.apk' %(mutiseletion.get())]
+    thrun(runcmd(cmd))
     showinfo(" <<---- 读取设备配置")
 
 def opensource():
@@ -315,12 +313,6 @@ def pdp():
     th3=threading.Thread(target=pointdonate2)
     th3.setDaemon(True)#守护线程
     th3.start()
-
-def thrun(fun):  # 调用子线程跑功能，防止卡住
-    showinfo("Test threading...")
-    th=threading.Thread(target=fun)
-    th.setDaemon(True)
-    th.start()
 
 def listdir(path):
     L=[] 
