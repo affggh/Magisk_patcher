@@ -5,16 +5,17 @@ import sys
 import subprocess
 import tkinter as tk 
 from tkinter.filedialog import *
-from tkinter import ttk
+# from tkinter import ttk
 from tkinter import *
+import ttkbootstrap as ttk
 import time
 import webbrowser
 import threading
 
 # Hide console , need ```pip install pywin32```
-import win32gui, win32con
-the_program_to_hide = win32gui.GetForegroundWindow()
-win32gui.ShowWindow(the_program_to_hide, win32con.SW_HIDE)
+#import win32gui, win32con
+#the_program_to_hide = win32gui.GetForegroundWindow()
+#win32gui.ShowWindow(the_program_to_hide, win32con.SW_HIDE)
 
 VERSION = "20220304"
 # Read config from GUIcfg.txt
@@ -33,12 +34,12 @@ with open(configPath, "r") as file:
 #print(THEME)
 #print(SHOW_DONATE_BUTTON)
 
-root = tk.Tk()
+root = ttk.Window()
 root.geometry("750x470")
 
 # Set the initial theme
-root.tk.call("source", "sun-valley.tcl")
-root.tk.call("set_theme", THEME)
+#root.tk.call("source", "sun-valley.tcl")
+#root.tk.call("set_theme", THEME)
 
 def change_theme():
     # NOTE: The theme's real name is sun-valley-<mode>
