@@ -5,9 +5,9 @@ import sys
 import subprocess
 import tkinter as tk 
 from tkinter.filedialog import *
-# from tkinter import ttk
+from tkinter import ttk
 from tkinter import *
-import ttkbootstrap as ttk
+#import ttkbootstrap as ttk
 import time
 import webbrowser
 import threading
@@ -34,12 +34,12 @@ with open(configPath, "r") as file:
 #print(THEME)
 #print(SHOW_DONATE_BUTTON)
 
-root = ttk.Window()
+root = tk.Tk()
 root.geometry("750x470")
 
 # Set the initial theme
-#root.tk.call("source", "sun-valley.tcl")
-#root.tk.call("set_theme", THEME)
+root.tk.call("source", "sun-valley.tcl")
+root.tk.call("set_theme", THEME)
 
 def change_theme():
     # NOTE: The theme's real name is sun-valley-<mode>
