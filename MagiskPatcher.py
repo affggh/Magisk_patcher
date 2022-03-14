@@ -25,7 +25,7 @@ with open(configPath, "r") as file:
         if((line.split('=', 1)[0]) == "THEME"):
             THEME = line.split('=', 1)[1]
             THEME = THEME.replace('\n', '')
-            if(THEME!="dark") or (THEME!="light"): # 防止手贱改成别的导致主题爆炸
+            if(THEME!="dark"): # 防止手贱改成别的导致主题爆炸
                 THEME="light"
         if((line.split('=', 1)[0]) == "DONATE_BUTTON"):
             SHOW_DONATE_BUTTON = line.split('=', 1)[1]
