@@ -72,6 +72,7 @@ keepverity = tk.StringVar()
 keepforceencrypt = tk.StringVar()
 patchvbmetaflag = tk.StringVar()
 mutiseletion = tk.StringVar()
+recoverymode = tk.StringVar()
 # For logo
 photo = tk.PhotoImage(file=".\\bin\\logo.png")#file：t图片路径
 # For aboutme
@@ -176,12 +177,22 @@ def confirmConfig():
 def select(*args):
     showinfo("选择Magisk版本为 : %s" %(mutiseletion.get()))
 
+def recModeStatus():
+    if recoverymode.get()=='1':
+        showinfo("开启recovery模式修补")
+    else:
+        showinfo("关闭recovery模式修补")
+
 def PatchonWindows():
     showinfo(" ---->> 修补开始")
     if(Configflag==1):
         cmd = ['.\\magisk_patcher.bat','patch','-i','%s' %(filename.get()),'-c','%s' %(configname.get())]
     else:
         cmd = ['.\\magisk_patcher.bat','patch','-i','%s' %(filename.get()),'-a','%s' %(arch.get()),'-kv','%s' %(keepverity.get()),'-ke','%s' %(keepforceencrypt.get()),'-pv','%s' %(patchvbmetaflag.get()),'-m','.\\prebuilt\\%s.apk' %(mutiseletion.get())]
+    if recoverymode.get()=='1':
+        showinfo("启用recovery模式修补")
+        cmd.append('-r')
+        showinfo(cmd)
     thrun(runcmd(cmd)) # 调用子线程运行减少卡顿
     showinfo(" <<--- 修补结束")
 
@@ -231,6 +242,7 @@ def About():
     aframe1.pack(side=BOTTOM, expand=YES, pady=3)
     aframe2.pack(side=BOTTOM, expand=YES, pady=3)
     ttk.Button(aframe1, text='访问项目', command=opensource).pack(side=LEFT, expand=YES, padx=5)
+    ttk.Button(aframe1, text='获取最新', command=lambda u="https://hub.fastgit.xyz/affggh/Magisk_patcher/archive/refs/heads/main.zip":webbrowser.open(u)).pack(side=LEFT, expand=YES, padx=5)
     ttk.Label(aframe2, text='脚本编写自affggh\nshell脚本提取修改自Magisk-v24.1安装包\n项目开源地址：github.com/affggh/Magisk_Patcher\n').pack(side=BOTTOM, expand=NO, pady=3)
     chdir()
     
@@ -374,6 +386,7 @@ ttk.Button(tab2, text='Windows环境\n修 补', command=PatchonWindows).pack(sid
 ttk.Button(tab2, text='连接设备环境\n修 补', command=PatchonDevice).pack(side=TOP, expand=NO, pady=3)
 ttk.Label(tab2, text='使用设备环境修补不需要\n配置各种参数\n配置来源与设备').pack(side=BOTTOM, expand=NO, pady=3)
 ttk.Label(tab2, text='选择Magisk版本').pack(side=TOP, expand=NO, pady=3)
+ttk.Checkbutton(tab2, variable=recoverymode, text="recovery修补", command=recModeStatus).pack(side=TOP, expand=NO, pady=3)
 comboxlist = ttk.Combobox(tab2, textvariable=mutiseletion, width=14)
 filelist = listdir(".\\prebuilt")
 comboxlist["values"]=(filelist)
@@ -433,6 +446,7 @@ showinfo("高级点：")
 showinfo("自己写个config.txt-->选择config.txt-->修补")
 showinfo("简单点：")
 showinfo("直接选个magisk版本-->插手机-->手机修补\n            （不过配置只能用手机的）")
+showinfo("  注：recovery模式仅支持windows修补")
 text.insert(END,"\n        此脚本为免费工具，如果你花钱买了你就是大傻逼\n")
 
 root.update()
