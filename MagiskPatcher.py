@@ -1,9 +1,15 @@
+#!/usr/bin/env python3
 # 脚本 by affggh
 # Apcache 2.0 
 import os
 import sys
 import subprocess
-import tkinter as tk 
+if os.name == 'nt':
+    import tkinter as tk
+if os.name == 'posix':
+    from mttkinter import mtTkinter as tk 
+    # While Load some need thread funcion on Linux it will failed
+    # Just use mttkinter replace regular tkinter
 from tkinter.filedialog import *
 from tkinter import ttk
 from tkinter import *
@@ -22,7 +28,7 @@ def main():
     VERSION = "20220304"
     LOCALDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
     # Read config from GUIcfg.txt
-    configPath = LOCALDIR+os.sep+"bin\\GUIcfg.txt"
+    configPath = LOCALDIR + os.sep + "bin" + os.sep + "GUIcfg.txt"
     with open(configPath, "r") as file:
         for line in file.readlines():
             if((line.split('=', 1)[0]) == "THEME"):
@@ -58,9 +64,9 @@ def main():
 
     def logo():
         os.chdir(os.path.abspath(os.path.dirname(sys.argv[0])))
-        root.iconbitmap(LOCALDIR+os.sep+'bin\\logo.ico')
-
-    logo()
+        root.iconbitmap(os.path.abspath(LOCALDIR+os.sep+'bin' + os.sep+ 'logo.ico'))
+    if os.name == 'nt':
+        logo()
 
     # Frame 这里都用到了外部命令导致卡顿，子进程运行来缓解
     frame2_3 = Frame(root, relief=FLAT)
@@ -77,16 +83,17 @@ def main():
     mutiseletion = tk.StringVar()
     recoverymode = tk.StringVar()
     # For logo
-    photo = tk.PhotoImage(file=LOCALDIR+os.sep+"bin\\logo.png")#file：t图片路径
+    photo = tk.PhotoImage(file=LOCALDIR+os.sep+"bin"+os.sep+"logo.png")#file：t图片路径
     # For aboutme
-    photo2 = tk.PhotoImage(file=LOCALDIR+os.sep+"bin\\logo.png")#file：t图片路径
+    photo2 = tk.PhotoImage(file=LOCALDIR+os.sep+"bin"+os.sep+"logo.png")#file：t图片路径
     # For donate QR code
-    photo3 = tk.PhotoImage(file=LOCALDIR+os.sep+"bin\\alipay.png")#file：t图片路径
-    photo4 = tk.PhotoImage(file=LOCALDIR+os.sep+"bin\\wechat.png")#file：t图片路径
-    photo5 = tk.PhotoImage(file=LOCALDIR+os.sep+"bin\\zfbhb.png")#file：t图片路径
+    photo3 = tk.PhotoImage(file=LOCALDIR+os.sep+"bin"+os.sep+"alipay.png")#file：t图片路径
+    photo4 = tk.PhotoImage(file=LOCALDIR+os.sep+"bin"+os.sep+"wechat.png")#file：t图片路径
+    photo5 = tk.PhotoImage(file=LOCALDIR+os.sep+"bin"+os.sep+"zfbhb.png")#file：t图片路径
 
     global Configflag
     Configflag = 0    # 默认使用第一页的配置
+    global Thanks
 
     Thanks = 0 # 左下角的贴图说谢谢
 
@@ -99,19 +106,14 @@ def main():
         global time1
         time1 = ''
         time2 = time.strftime('%H:%M:%S')
-        # Label(top, text='当前时间:', bg='gold', font=28).place(x=630, y=120)
         # 能动态显示系统时间
         if time2 != time1:
             time1 = time2
             text.insert(END, "[%s] : " %(time1))
-            # clock.configure(text=time2)
-            # clock.place(x=715, y=120)
-            # clock.after(200,get_time)
 
     def selectFile():
         filepath = askopenfilename()                   # 选择打开什么文件，返回文件名
-        filename.set(filepath.replace('/', '\\'))      # 设置变量filename的值
-        showinfo("选择文件为：\n%s" %(filepath.replace('/', '\\')))
+        showinfo("选择文件为：\n%s" %(filepath))
 
     def showinfo(textmsg):
         textstr = textmsg
@@ -138,8 +140,8 @@ def main():
     def cleaninfo():
         text.delete(1.0, END)  # 清空text
         text.image_create(END,image=photo)
-        text.insert(END,"        Copyright(R) affggh  Apache2.0\n")
-        text.insert(END,"\n        此脚本为免费工具，如果你花钱买了你就是大傻逼\n")
+        text.insert(END,"        Copyright(R) affggh  Apache2.0\n" \
+                        "\n        此脚本为免费工具，如果你花钱买了你就是大傻逼\n")
 
     def test():
         showinfo("Testing...")
@@ -159,16 +161,17 @@ def main():
         else:
             Configflag = 0
             showinfo("确认配置信息：")
-            showinfo("             镜像架构 = " + "%s" %(arch.get()))
-            showinfo("             保持验证 = " + "%s" %(keepverity.get()))
-            showinfo("             保持强制加密 = " + "%s" %(keepforceencrypt.get()))
-            showinfo("             修补vbmeta标志 = "+ "%s" %(patchvbmetaflag.get()))
+            showinfo("\n" + \
+                     "             镜像架构 = " + "%s\n" %(arch.get()) + \
+                     "             保持验证 = " + "%s\n" %(keepverity.get()) + \
+                     "             保持强制加密 = " + "%s\n" %(keepforceencrypt.get()) + \
+                     "             修补vbmeta标志 = "+ "%s" %(patchvbmetaflag.get()))
         tabControl.select(tab2)
 
     def selectConfig():
         configpath = askopenfilename()                   # 选择打开什么文件，返回文件名
-        configname.set(configpath.replace('/', '\\'))      # 设置变量filename的值
-        showinfo("选择配置文件为：\n%s" %(configpath.replace('/', '\\')))
+        # configname.set(configpath.replace('/', '\\'))      # 设置变量filename的值
+        showinfo("选择配置文件为：\n%s" %(configpath))
         showConfig(1)
 
     def confirmConfig():
@@ -244,7 +247,6 @@ def main():
         ttk.Button(aframe1, text='访问项目', command=opensource).pack(side=LEFT, expand=YES, padx=5)
         ttk.Button(aframe1, text='获取最新', command=lambda u="https://hub.fastgit.xyz/affggh/Magisk_patcher/archive/refs/heads/main.zip":webbrowser.open(u)).pack(side=LEFT, expand=YES, padx=5)
         ttk.Label(aframe2, text='脚本编写自affggh\nshell脚本提取修改自Magisk-v24.1安装包\n项目开源地址：github.com/affggh/Magisk_Patcher\n').pack(side=BOTTOM, expand=NO, pady=3)
-        chdir()
         
         imgLabe2 = ttk.Label(aframe2,image=photo2)#把图片整合到标签类中
         imgLabe2.pack(side=TOP, expand=YES, pady=3)
@@ -257,7 +259,9 @@ def main():
         text.image_create(END,image=photo5)
         global Thanks
         if Thanks==0:
-            Label(frame4,text='    ----------------------------\n  < 谢谢老板！老板发大财！|\n   ----------------------------').pack(side=LEFT, expand=NO, pady=3)
+            Label(frame4,text='    ----------------------------\n' \
+                              '  < 谢谢老板！老板发大财！|\n' \
+                              '   ----------------------------').pack(side=LEFT, expand=NO, pady=3)
             Thanks = 1
 
     def color(value):
@@ -318,13 +322,13 @@ def main():
 
     def pdp():
         th2=threading.Thread(target=pointdonate)
-        th2.setDaemon(True)#守护线程
+        th2.setDaemon(True) #守护线程
         th2.start()
         th=threading.Thread(target=colorfuldonate)
-        th.setDaemon(True)#守护线程
+        th.setDaemon(True) #守护线程
         th.start()
         th3=threading.Thread(target=pointdonate2)
-        th3.setDaemon(True)#守护线程
+        th3.setDaemon(True) #守护线程
         th3.start()
 
     def listdir(path):
@@ -334,7 +338,7 @@ def main():
                 if os.path.splitext(file)[1] == '.apk':
                     tmp = os.path.join(root, file)
                     tmp = tmp.replace('.apk','')
-                    tmp = tmp.replace('.\\prebuilt\\','')
+                    tmp = tmp.replace('.' + os.sep + 'prebuilt' + os.sep, '')
                     L.append(tmp)
         return L
 
@@ -343,7 +347,7 @@ def main():
     frame1 = LabelFrame(root, text="文件选择", labelanchor="w", relief=FLAT, borderwidth=1)
     frame1.pack(side=TOP, fill=BOTH, padx=6, pady=8, expand=NO)
     # tk.Label(frame1, text='选择文件').pack(side=LEFT)
-    ttk.Entry(frame1, width=80,textvariable=filename).pack(side=LEFT, padx=10)
+    ttk.Entry(frame1, width=70,textvariable=filename).pack(side=LEFT, expand=YES, fill=X, padx=10)
     ttk.Button(frame1, text='选择文件', command=selectFile).pack(side=LEFT)
     # 
 
@@ -388,9 +392,9 @@ def main():
     ttk.Label(tab2, text='选择Magisk版本').pack(side=TOP, expand=NO, pady=3)
     ttk.Checkbutton(tab2, variable=recoverymode, text="recovery修补", command=recModeStatus).pack(side=TOP, expand=NO, pady=3)
     comboxlist = ttk.Combobox(tab2, textvariable=mutiseletion, width=14)
-    filelist = listdir(".\\prebuilt")
+    filelist = listdir("./prebuilt")
     comboxlist["values"]=(filelist)
-    if(filename):
+    if len(filelist)>0:
         comboxlist.current(0) # 选择第一个
     else:
         showinfo("Error : 没有找到Magisk安装包，请确保prebuilt目录下存在apk文件")
@@ -419,7 +423,7 @@ def main():
     frame2_3.pack(side=TOP, expand=NO, pady=2, fill=BOTH)
 
 
-    # Frame 4 关于 和 清除信息
+    # Frame 4 关于 和 清除信息t
     frame4 = Frame(root, relief=FLAT)
     ttk.Button(frame4, text='清空信息', command=cleaninfo).pack(side=RIGHT, expand=NO, pady=3)
     ttk.Button(frame4, text='关于', command=About).pack(side=RIGHT, expand=NO, pady=3)
@@ -429,25 +433,27 @@ def main():
         frame41 = Frame(frame4, relief=FLAT)
         pdp()
         frame41.pack(side=RIGHT, expand=NO, pady=3)
+    else:
+        ttk.Button(frame4, text='捐赠', command=donateme).pack(side=RIGHT, expand=NO, pady=3)
     frame4.pack(side=TOP, expand=NO, padx=10, ipady=5, fill=BOTH)
 
     imgLabel = ttk.Label(frame4,image=photo)#把图片整合到标签类中
     imgLabel.pack(side=LEFT, expand=NO, pady=3)
 
     text.image_create(END,image=photo)
-    text.insert(END,"        Copyright(R) affggh  Apache2.0\n")
-    showinfo("欢迎使用我的Magisk修补脚本")
-    showinfo("    脚本运行环境：")
-    showinfo("                 windows10 x86_64")
-    showinfo("此脚本为免费工具，如果你花钱买了你就是大傻逼")
-    showinfo("普通流程：")
-    showinfo("修改配置-->确认配置-->修补")
-    showinfo("高级点：")
-    showinfo("自己写个config.txt-->选择config.txt-->修补")
-    showinfo("简单点：")
-    showinfo("直接选个magisk版本-->插手机-->手机修补\n            （不过配置只能用手机的）")
-    showinfo("  注：recovery模式仅支持windows修补")
-    text.insert(END,"\n        此脚本为免费工具，如果你花钱买了你就是大傻逼\n")
+    text.insert(END,"        Copyright(R) affggh  Apache2.0\n" \
+                    "欢迎使用我的Magisk修补脚本\n" \
+                    "    脚本运行环境：\n" \
+                    "                 windows10 x86_64\n" \
+                    "此脚本为免费工具，如果你花钱买了你就是大傻逼\n" \
+                    "普通流程：\n" \
+                    "修改配置-->确认配置-->修补\n" \
+                    "高级点：\n" \
+                    "自己写个config.txt-->选择config.txt-->修补\n" \
+                    "简单点：\n" \
+                    "直接选个magisk版本-->插手机-->手机修补\n            （不过配置只能用手机的）\n" \
+                    "  注：recovery模式仅支持windows修补\n" \
+                    "\n        此脚本为免费工具，如果你花钱买了你就是大傻逼\n" )
 
     root.update()
     root.mainloop()
