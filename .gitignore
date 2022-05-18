@@ -1,4 +1,5 @@
 # 不要上传img文件
 *.img
 # config文件不是所有设备通用，自行生成或编写
-config.txt
+./config.txt
+
