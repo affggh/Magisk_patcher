@@ -1,7 +1,0 @@
-# VAR    TYPE
-arch=arm64
-keepverity=true
-keepforceencrypt=true
-patchvbmetaflag=false
-recoverymode=false
-magisk=./prebuilt/Magisk-v24.3.apk
