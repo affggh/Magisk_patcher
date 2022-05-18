@@ -1,2 +1,2 @@
 THEME=light
-DONATE_BUTTON=True
+DONATE_BUTTON=False
