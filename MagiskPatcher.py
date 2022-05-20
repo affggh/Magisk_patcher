@@ -3,8 +3,11 @@
 # Apcache 2.0 
 import os
 import sys
+import shutil
+import zipfile
 import subprocess
-from unittest.mock import patch
+import platform
+
 if os.name == 'nt':
     import tkinter as tk
 if os.name == 'posix':
@@ -41,8 +44,28 @@ def main():
                 SHOW_DONATE_BUTTON = line.split('=', 1)[1]
                 SHOW_DONATE_BUTTON = SHOW_DONATE_BUTTON.replace('\n', '') #显示捐赠按钮
 
-    #print(THEME)
-    #print(SHOW_DONATE_BUTTON)
+    # Detect machine and ostype
+    ostype = platform.system().lower()
+    machine = platform.machine().lower()
+    if machine == 'aarch64_be' \
+    or machine == 'armv8b' \
+    or machine == 'armv8l':
+        machine = 'aarch64'
+    if machine == 'i386' or machine == 'i686':
+        machine = 'x86'
+    if machine == "amd64":
+        machine = 'x86_64'
+    if ostype == 'windows':
+        if not machine == 'x86_64':
+            print("Error : Program on windows only support 64bit machine")
+            sys.exit(1)
+    if ostype == 'linux':
+        if not (machine == 'aarch64' or \
+                machine == 'arm' or \
+                machine == 'x86_64'):
+            print("Error : Machine not support your device [%s]" %machine)
+            sys.exit(1)
+    
 
     root = tk.Tk()
     root.geometry("750x470")
@@ -127,8 +150,12 @@ def main():
         text.yview('end')
 
     def runcmd(cmd):
+        if os.name == 'nt':
+            sFlag = False
+        else:
+            sFlag = True  # fix file not found on linux
         try:
-            ret = subprocess.Popen(cmd, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            ret = subprocess.Popen(cmd, shell=sFlag, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             for i in iter(ret.stdout.readline, b''):
                 showinfo(i.strip().decode("UTF-8"))
         except subprocess.CalledProcessError as e:
@@ -199,21 +226,106 @@ def main():
             showinfo("关闭recovery模式修补")
             recoverymode.set("false")
 
+    def parseZip(filename):
+        def returnMagiskVersion(buf):
+            v = "Unknow"
+            l = buf.decode('utf_8').split("\n")
+            for i in l:
+                if not i.find("MAGISK_VER=") == -1:
+                    v = i.split("=")[1].strip("'")
+                    break
+            return v
+
+        def rename(n):
+            if n.startswith("lib") and n.endswith(".so"):
+                n = n.replace("lib", "").replace(".so", "")
+            return n
+
+        if not os.access(filename, os.F_OK):
+            return False
+        else:
+            f = zipfile.ZipFile(filename, 'r')
+            l = f.namelist() # l equals list
+            tl = []  # tl equals total get list
+            for i in l:
+                if not i.find("assets/") == -1 or \
+                   not i.find("lib/") == -1:
+                    tl.append(i)
+            buf = f.read("assets/util_functions.sh")
+            mVersion = returnMagiskVersion(buf)
+            showinfo("Parse Magisk Version : " + mVersion)
+            for i in tl:
+                if arch.get() == "arm64":
+                    if i.startswith("lib/arm64-v8a/") and i.endswith(".so"):
+                        if not (i.endswith("busybox.so") or i.endswith("magiskboot.so")):
+                            f.extract(i, "tmp")
+                elif arch.get() == "arm":
+                    if i.startswith("lib/armeabi-v7a/") and i.endwith(".so"):
+                        if not (i.endswith("busybox.so") or i.endswith("magiskboot.so")):
+                            f.extract(i, "tmp")
+                elif arch.get() == "x86_64":
+                    if i.startswith("lib/x86_64/") and i.endwith(".so"):
+                        if not (i.endswith("busybox.so") or i.endswith("magiskboot.so")):
+                            f.extract(i, "tmp")
+                elif arch.get() == "x86":
+                    if i.startswith("lib/x86/") and i.endwith(".so"):
+                        if not (i.endswith("busybox.so") or i.endswith("magiskboot.so")):
+                            f.extract(i, "tmp")
+            for i in tl:
+                if arch.get() == "arm64" and not os.access("libmagisk32.so", os.F_OK):
+                    if i == "lib/armeabi-v7a/libmagisk32.so":
+                        f.extract("lib/armeabi-v7a/libmagisk32.so", "tmp")
+                elif arch.get() == "x86_64" and not os.access("libmagisk32.so", os.F_OK):
+                    if i == "lib/x86/libmagisk32.so":
+                        f.extract("lib/armeabi-v7a/libmagisk32.so", "tmp")
+            for root, dirs, files in os.walk("tmp"):
+                for file in files:
+                    if file.endswith(".so"):
+                        shutil.move(root+os.sep+file, rename(os.path.basename(file)))
+            shutil.rmtree("tmp")
+            return True
+
     def PatchonWindows():
         showinfo(" ---->> 修补开始")
-        cmd = [LOCALDIR+os.sep+'magisk_patcher.bat','patch','-i','%s' %(filename.get()),'-a','%s' %(arch.get()),'-kv','%s' %(keepverity.get()),'-ke','%s' %(keepforceencrypt.get()),'-pv','%s' %(patchvbmetaflag.get()),'-m','.\\prebuilt\\%s.apk' %(mutiseletion.get())]
-        if recoverymode.get()=='1':
-            showinfo("启用recovery模式修补")
-            cmd.append('-r')
-            showinfo(cmd)
-        thrun(runcmd(cmd)) # 调用子线程运行减少卡顿
+        if not os.access(filename.get(), os.F_OK):
+            showinfo("待修补文件不存在")
+            showinfo(" <<---- 修补失败")
+            return False
+
+        # cmd = [LOCALDIR+os.sep+'magisk_patcher.bat','patch','-i','%s' %(filename.get()),'-a','%s' %(arch.get()),'-kv','%s' %(keepverity.get()),'-ke','%s' %(keepforceencrypt.get()),'-pv','%s' %(patchvbmetaflag.get()),'-m','.\\prebuilt\\%s.apk' %(mutiseletion.get())]
+        f = "." + os.sep + "prebuilt" + os.sep + mutiseletion.get() + ".apk"
+        if not parseZip(f):
+            showinfo("apk文件解析失败")
+            showinfo(" <<---- 修补失败")
+            return False
+        if os.name == 'nt':
+            cmd = "." + os.sep + "bin" + os.sep + ostype + os.sep + machine + os.sep + "busybox ash "
+        elif os.name == 'posix':
+            cmd = "." + os.sep + "bin" + os.sep + ostype + os.sep + machine + os.sep + "busybox ash "
+        else:
+            showinfo("not support")
+            return False
+        if not os.access("./bin/boot_patch.sh", os.F_OK):
+            showinfo("Error : 关键脚本丢失")
+            return False
+        cmd += "." + os.sep + "bin" + os.sep + "boot_patch.sh  \"%s\"" %(filename.get())
+        cmd += " %s" %keepverity.get()
+        cmd += " %s" %keepforceencrypt.get()
+        cmd += " %s" %patchvbmetaflag.get()
+        cmd += " %s" %recoverymode.get()
+        try:
+            thrun(runcmd(cmd)) # 调用子线程运行减少卡顿
+        except:
+            showinfo("Error : 出现问题，修补失败")
+        cleanUp()
         showinfo(" <<--- 修补结束")
 
     def PatchonDevice():
         showinfo(" ---->> 使用设备环境修补开始")
         showinfo("    本功能信息回馈较慢，请耐心等待...")
-        cmd = [LOCALDIR+os.sep+'magisk_patcher.bat','patchondevice','-i','%s' %(filename.get()),'-m','.\\prebuilt\\%s.apk' %(mutiseletion.get())]
-        thrun(runcmd(cmd))
+        # cmd = [LOCALDIR+os.sep+'magisk_patcher.bat','patchondevice','-i','%s' %(filename.get()),'-m','.\\prebuilt\\%s.apk' %(mutiseletion.get())]
+        # thrun(runcmd(cmd))
+        showinfo("暂不支持")
         showinfo(" <<---- 使用设备环境修补结束")
 
     def GenDefaultConfig():
@@ -230,7 +342,13 @@ def main():
                     "magisk=%s\n" %("." + os.sep + "prebuilt" + os.sep + mutiseletion.get() + ".apk") )
                     # magisk=%s not use on python program, only worked on batch version
         if os.path.isfile('.' + os.sep + 'config.txt'):
-            showConfig()
+            showinfo("确认配置信息：")
+            text.insert(END, "\n" + \
+                         "             镜像架构 = " + "%s\n" %(arch.get()) + \
+                         "             保持验证 = " + "%s\n" %(keepverity.get()) + \
+                         "             保持强制加密 = " + "%s\n" %(keepforceencrypt.get()) + \
+                         "             修补vbmeta标志 = "+ "%s\n" %(patchvbmetaflag.get()) +\
+                         "             Recovery Mode = " + "%s\n" %(recoverymode.get()))
             showinfo("成功生成配置")
         else:
             showinfo("选中配置生成失败")
@@ -364,6 +482,25 @@ def main():
                     L.append(tmp)
         return L
 
+    def cleanUp():
+        def rm(p):
+            if os.access(p, os.F_OK):
+                if os.path.isdir(p):
+                    shutil.rmtree(p)
+                elif os.path.isfile(p):
+                    os.remove(p)
+                else:
+                    os.remove(p)
+
+        l = ["busybox", "magisk32", "magisk64", "magiskinit", "magiskboot"]
+        d = ["tmp"]
+        for i in l:
+            rm(i)
+        for i in d:
+            rm(i)
+        cmd = "." + os.sep + "bin" + os.sep + ostype + os.sep + machine + os.sep + "magiskboot cleanup"
+        thrun(runcmd(cmd))
+
     # button and text
     # Frame 1  文件选择
     frame1 = LabelFrame(root, text="文件选择", labelanchor="w", relief=FLAT, borderwidth=1)
@@ -408,7 +545,7 @@ def main():
     tabControl.add(tab1, text='配置')  #把新选项卡增加到Notebook
 
     tab2 = ttk.Frame(tabControl)  #增加新选项卡
-    ttk.Button(tab2, text='Windows环境\n修 补', command=PatchonWindows).pack(side=TOP, expand=NO, pady=3)
+    ttk.Button(tab2, text='使用当前配置\n修 补', command=PatchonWindows).pack(side=TOP, expand=NO, pady=3)
     ttk.Button(tab2, text='连接设备环境\n修 补', command=PatchonDevice).pack(side=TOP, expand=NO, pady=3)
     ttk.Label(tab2, text='使用设备环境修补不需要\n配置各种参数\n配置来源与设备').pack(side=BOTTOM, expand=NO, pady=3)
     ttk.Label(tab2, text='选择Magisk版本').pack(side=TOP, expand=NO, pady=3)
@@ -466,8 +603,8 @@ def main():
     text.image_create(END,image=photo)
     text.insert(END,"        Copyright(R) affggh  Apache2.0\n" \
                     "欢迎使用我的Magisk修补脚本\n" \
-                    "    脚本运行环境：\n" \
-                    "                 windows10 x86_64\n" \
+                    "    当前脚本运行环境：\n" \
+                    "                   [%s] [%s]\n" \
                     "此脚本为免费工具，如果你花钱买了你就是大傻逼\n" \
                     "普通流程：\n" \
                     "修改配置-->确认配置-->修补\n" \
@@ -476,9 +613,9 @@ def main():
                     "简单点：\n" \
                     "直接选个magisk版本-->插手机-->手机修补\n            （不过配置只能用手机的）\n" \
                     "  注：recovery模式仅支持windows修补\n" \
-                    "\n        此脚本为免费工具，如果你花钱买了你就是大傻逼\n" )
+                    "\n        此脚本为免费工具，如果你花钱买了你就是大傻逼\n" %(ostype, machine))
 
-    root.update()
+    # root.update()
     root.mainloop()
 
 if __name__=='__main__':

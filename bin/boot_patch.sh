@@ -1,6 +1,7 @@
 #!/system/bin/sh
 #######################################################################################
 # Magisk Boot Image Patcher
+# Modified by affggh
 #######################################################################################
 #
 # Usage: boot_patch.sh <bootimage>
@@ -53,6 +54,38 @@ abort() {
   exit 1
 }
 
+# Add by affggh for mutipule arch detect
+machine=$(uname -m)
+ostype=$(uname -s)
+# arm no need to replace
+if [ "$machine" = "aarch64_be" ] || \
+   [ "$machine" = "armv8b" ] || \
+   [ "$machine" = "armv8l" ]; then
+  machine="aarch64"
+elif [ "$machine" = "i386" ] || \
+     [ "$machine" = "i686" ]; then
+  machine="x86"
+elif [ "$machine" = "amd64" ]; then
+  machine="x86_64"
+fi
+
+if [ "$ostype" = "Windows_NT" ]; then
+  ostype="windows"
+  if [ ! "$machine" = "x86_64" ]; then
+    echo "Machine [$machine] not support on windows"
+    exit 1
+    fi
+elif [ "$ostype" = "Linux" ]; then
+  ostype="linux"
+else
+  echo "OS type : [$ostype] not support."
+  exit 1
+fi
+
+alias magiskboot="$(realpath $(dirname $0))/${ostype}/${machine}/magiskboot"
+alias busybox="$(realpath $(dirname $0))/${ostype}/${machine}/busybox"
+# End add by affggh
+
 #################
 # Initialization
 #################
@@ -102,7 +135,7 @@ chmod -R 755 .
 CHROMEOS=false
 
 ui_print "- Unpacking boot image"
-./bin/magiskboot unpack "$BOOTIMAGE"
+magiskboot unpack "$BOOTIMAGE"
 
 case $? in
   0 ) ;;
@@ -125,7 +158,7 @@ esac
 # Test patch status and do restore
 ui_print "- Checking ramdisk status"
 if [ -e ramdisk.cpio ]; then
-  ./bin/magiskboot cpio ramdisk.cpio test
+  magiskboot cpio ramdisk.cpio test
   STATUS=$?
 else
   # Stock A only system-as-root
@@ -134,15 +167,15 @@ fi
 case $((STATUS & 3)) in
   0 )  # Stock boot
     ui_print "- Stock boot image detected"
-    SHA1=$(./bin/magiskboot sha1 "$BOOTIMAGE" 2>/dev/null)
+    SHA1=$(magiskboot sha1 "$BOOTIMAGE" 2>/dev/null)
     cat $BOOTIMAGE > stock_boot.img
     cp -af ramdisk.cpio ramdisk.cpio.orig 2>/dev/null
     ;;
   1 )  # Magisk patched
     ui_print "- Magisk patched boot image detected"
     # Find SHA1 of stock boot image
-    [ -z $SHA1 ] && SHA1=$(./bin/magiskboot cpio ramdisk.cpio sha1 2>/dev/null)
-    ./bin/magiskboot cpio ramdisk.cpio restore
+    [ -z $SHA1 ] && SHA1=$(magiskboot cpio ramdisk.cpio sha1 2>/dev/null)
+    magiskboot cpio ramdisk.cpio restore
     cp -af ramdisk.cpio ramdisk.cpio.orig
     rm -f stock_boot.img
     ;;
@@ -174,15 +207,15 @@ echo "RECOVERYMODE=$RECOVERYMODE" >> config
 SKIP32="#"
 SKIP64="#"
 if [ -f magisk32 ]; then
-  ./bin/magiskboot compress=xz magisk32 magisk32.xz
+  magiskboot compress=xz magisk32 magisk32.xz
   unset SKIP32
 fi
 if [ -f magisk64 ]; then
-  ./bin/magiskboot compress=xz magisk64 magisk64.xz
+  magiskboot compress=xz magisk64 magisk64.xz
   unset SKIP64
 fi
 
-./bin/magiskboot cpio ramdisk.cpio \
+magiskboot cpio ramdisk.cpio \
 "add 0750 $INIT magiskinit" \
 "mkdir 0750 overlay.d" \
 "mkdir 0750 overlay.d/sbin" \
@@ -200,23 +233,23 @@ rm -f ramdisk.cpio.orig config magisk*.xz
 #################
 
 for dt in dtb kernel_dtb extra; do
-  [ -f $dt ] && ./bin/magiskboot dtb $dt patch && ui_print "- Patch fstab in $dt"
+  [ -f $dt ] && magiskboot dtb $dt patch && ui_print "- Patch fstab in $dt"
 done
 
 if [ -f kernel ]; then
   # Remove Samsung RKP
-  ./bin/magiskboot hexpatch kernel \
+  magiskboot hexpatch kernel \
   49010054011440B93FA00F71E9000054010840B93FA00F7189000054001840B91FA00F7188010054 \
   A1020054011440B93FA00F7140020054010840B93FA00F71E0010054001840B91FA00F7181010054
 
   # Remove Samsung defex
   # Before: [mov w2, #-221]   (-__NR_execve)
   # After:  [mov w2, #-32768]
-  ./bin/magiskboot hexpatch kernel 821B8012 E2FF8F12
+  magiskboot hexpatch kernel 821B8012 E2FF8F12
 
   # Force kernel to load rootfs
   # skip_initramfs -> want_initramfs
-  ./bin/magiskboot hexpatch kernel \
+  magiskboot hexpatch kernel \
   736B69705F696E697472616D667300 \
   77616E745F696E697472616D667300
 fi
@@ -226,7 +259,7 @@ fi
 #################
 
 ui_print "- Repacking boot image"
-./bin/magiskboot repack "$BOOTIMAGE" || abort "! Unable to repack boot image"
+magiskboot repack "$BOOTIMAGE" || abort "! Unable to repack boot image"
 
 # Sign chromeos boot
 $CHROMEOS && sign_chromeos
