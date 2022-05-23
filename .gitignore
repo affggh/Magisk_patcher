@@ -3,3 +3,4 @@
 # config文件不是所有设备通用，自行生成或编写
 config.txt
 test.py
+prebuilt/*.apk

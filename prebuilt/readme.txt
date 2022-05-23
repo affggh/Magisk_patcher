@@ -1,1 +1,1 @@
-default is Magisk-v24.1.apk
+Python script now can auto download magisk file,but you still can put your own apk here

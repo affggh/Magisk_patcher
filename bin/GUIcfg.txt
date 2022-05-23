@@ -1,2 +1,4 @@
 THEME=light
 DONATE_BUTTON=False
+GIT_USE_MIRROR=True
+GIT_MIRROR=http://gh.api.99988866.xyz/https://github.com/

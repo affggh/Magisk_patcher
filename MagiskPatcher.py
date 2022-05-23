@@ -4,11 +4,10 @@
 import os
 import sys
 import shutil
-import tkinter
 import zipfile
 import subprocess
 import platform
-
+import requests
 if os.name == 'nt':
     import tkinter as tk
 if os.name == 'posix':
@@ -24,9 +23,9 @@ import webbrowser
 import threading
 
 # Hide console , need ```pip install pywin32```
-#import win32gui, win32con
-#the_program_to_hide = win32gui.GetForegroundWindow()
-#win32gui.ShowWindow(the_program_to_hide, win32con.SW_HIDE)
+# import win32gui, win32con
+# the_program_to_hide = win32gui.GetForegroundWindow()
+# win32gui.ShowWindow(the_program_to_hide, win32con.SW_HIDE)
 
 def main():
 
@@ -41,9 +40,16 @@ def main():
                 THEME = THEME.replace('\n', '')
                 if(THEME!="dark"): # 防止手贱改成别的导致主题爆炸
                     THEME="light"
-            if((line.split('=', 1)[0]) == "DONATE_BUTTON"):
+            elif((line.split('=', 1)[0]) == "DONATE_BUTTON"):
                 SHOW_DONATE_BUTTON = line.split('=', 1)[1]
                 SHOW_DONATE_BUTTON = SHOW_DONATE_BUTTON.replace('\n', '') #显示捐赠按钮
+            elif((line.split('=', 1)[0]) == "GIT_USE_MIRROR"):
+                if (line.split('=', 1)[1]) == "True":
+                    GIT_USE_MIRROR = True
+                else:
+                    GIT_USE_MIRROR = False
+            elif((line.split('=', 1)[0]) == "GIT_MIRROR"):
+                GIT_MIRROR = line.split('=', 1)[1]
 
     # Detect machine and ostype
     ostype = platform.system().lower()
@@ -101,7 +107,6 @@ def main():
     text = Text(frame3,width=70,height=15,font=textfont) # 信息展示
 
     filename = tk.StringVar()
-    configname = tk.StringVar()
     arch = tk.StringVar()
     keepverity = tk.StringVar()
     keepforceencrypt = tk.StringVar()
@@ -181,21 +186,33 @@ def main():
                 text.update()
                 text.yview(END)
 
-    def get_output(cmd):
-        if os.name == 'nt':
-            sFlag = False
-        else:
-            sFlag = True  # fix file not found on linux
-        try:
-            ret = subprocess.getoutput(cmd)
-            return ret
-        except subprocess.CalledProcessError as e:
-            return e
+    def get_releases(url):
+        data = requests.get(url).json()
+        return data
+
+    def ret_dlink(url):
+        data = get_releases(url)
+        dlink = {}
+        for i in data:
+            for j in i['assets']:
+                if j['name'].startswith("Magisk-v") and j['name'].endswith(".apk"):
+                    if GIT_USE_MIRROR:
+                        dlink.update({j['name'] : j['browser_download_url'].replace("https://github.com/", GIT_MIRROR)})
+                    else:
+                        dlink.update({j['name'] : j['browser_download_url']})
+        return dlink
+
+    def download(url, file):
+        r = requests.get(url, stream=True)
+        with open(file, "wb") as f:
+            for chunk in r.iter_content(chunk_size=512):
+                f.write(chunk)
+        affgghsay("文件下载完成"+file)
 
     def thrun(fun):  # 调用子线程跑功能，防止卡住
         # showinfo("Test threading...")
         th=threading.Thread(target=fun)
-        th.deamon = True
+        th.daemon = True
         th.start()
 
     def cleaninfo():
@@ -244,8 +261,19 @@ def main():
     def confirmConfig():
         showConfig()
 
+    def __select(*args):
+        affgghsay("选择Magisk版本为 : %s" %(mutiseletion.get()))
+        if not os.access("." + os.sep + "prebuilt" + os.sep + mutiseletion.get() + ".apk", os.F_OK):
+            affgghsay("你选择的版本文件不存在，正在下载...")
+            try:
+                download(dlink[mutiseletion.get()+".apk"], "."+os.sep+"prebuilt"+os.sep+mutiseletion.get()+".apk")
+            except:
+                affgghsay("出现错误，请关掉代理重试")
+
     def select(*args):
-        showinfo("选择Magisk版本为 : %s" %(mutiseletion.get()))
+        th = threading.Thread(target=__select, args=args)
+        th.daemon = True
+        th.start()
 
     def recModeStatus():
         if recoverymodeflag.get()== True:
@@ -352,14 +380,6 @@ def main():
         use_time = end_time - start_time
         affgghsay("    总共用时 [%.2f] s" %use_time)
         affgghsay(" <<--- 修补结束")
-
-    def PatchonDevice():
-        showinfo(" ---->> 使用设备环境修补开始")
-        showinfo("    本功能信息回馈较慢，请耐心等待...")
-        # cmd = [LOCALDIR+os.sep+'magisk_patcher.bat','patchondevice','-i','%s' %(filename.get()),'-m','.\\prebuilt\\%s.apk' %(mutiseletion.get())]
-        # thrun(runcmd(cmd))
-        showinfo("暂不支持")
-        showinfo(" <<---- 使用设备环境修补结束")
 
     def GenDefaultConfig():
         affgghsay(" ---->> 生成选中配置")
@@ -574,6 +594,23 @@ def main():
         cmd = "." + os.sep + "bin" + os.sep + ostype + os.sep + machine + os.sep + "magiskboot cleanup"
         thrun(runcmd(cmd))
 
+    def get_comboxlist():
+        url = "https://api.github.com/repos/topjohnwu/Magisk/releases"
+        global dlink
+        dlink = ret_dlink(url)
+        l = []
+        for i in dlink.keys():
+            l.append(i.replace(".apk", ""))
+        for i in os.listdir("." + os.sep + "prebuilt"):
+            if i.endswith(".apk"):
+                l.append(os.path.basename(i).replace(".apk", ""))
+        l2=list(set(l))
+        l2.sort(key=l.index)
+        comboxlist["values"] = l2
+        if len(l) > 0:
+            comboxlist.current(0)
+        select()
+
     # button and text
     # Frame 1  文件选择
     frame1 = LabelFrame(root, text="文件选择", labelanchor="w", relief=FLAT, borderwidth=1)
@@ -624,6 +661,7 @@ def main():
     ttk.Label(tab2, text='选择Magisk版本').pack(side=TOP, expand=NO, pady=3)
     ttk.Checkbutton(tab2, variable=recoverymodeflag, text="recovery修补", command=recModeStatus).pack(side=TOP, expand=NO, pady=3)
     comboxlist = ttk.Combobox(tab2, textvariable=mutiseletion, width=14)
+    '''
     filelist = listdir("./prebuilt")
     filelist.reverse()  # 高版本在前面
     comboxlist["values"]=(filelist)
@@ -631,9 +669,12 @@ def main():
         comboxlist.current(0) # 选择第一个
     else:
         showinfo("Error : 没有找到Magisk安装包，请确保prebuilt目录下存在apk文件")
+    '''
+    # thrun(get_comboxlist())
     comboxlist.bind("<<ComboboxSelected>>",select)
     comboxlist.pack(side=TOP, expand=NO, pady=3)
     tabControl.add(tab2, text='修补')  #把新选项卡增加到Notebook
+    ttk.Button(tab2, text='获取magisk列表', command=get_comboxlist).pack(side=TOP, expand=NO, pady=3)
 
     tab3 = tk.Frame(tabControl)  #增加新选项卡
     ttk.Button(tab3, text='生成选中配置\nconfig.txt', command=lambda:thrun(GenDefaultConfig)).pack(side=TOP, expand=NO, pady=3)
