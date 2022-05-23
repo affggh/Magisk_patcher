@@ -11,7 +11,7 @@ Linux support:
         x86  
         x86_64  
 # GUI screen shortcut
-![image](bin/gui.png)
+![](bin/gui.png)
 # GUI THEME
 GUI ttk THEME from [Sun-Valley-ttk-theme](https://github.com/rdbende/Sun-Valley-ttk-theme)
 # Requirements
@@ -32,6 +32,6 @@ NOTiCE : Batch script now has been removed, if you want using it
 	[Magisk](https://github.com/topjohnwu/Magisk) 源码来自magisk    
 
 # Donate me
-![image](bin/alipay.png)
-![image](bin/wechat.png)
-![image](bin/zfbhb.png)
+![](bin/alipay.png)
+![](bin/wechat.png)
+![](bin/zfbhb.png)
