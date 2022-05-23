@@ -4,6 +4,7 @@
 import os
 import sys
 import shutil
+import tkinter
 import zipfile
 import subprocess
 import platform
@@ -29,7 +30,7 @@ import threading
 
 def main():
 
-    VERSION = "20220304"
+    VERSION = "20220523"
     LOCALDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
     # Read config from GUIcfg.txt
     configPath = LOCALDIR + os.sep + "bin" + os.sep + "GUIcfg.txt"
@@ -68,7 +69,7 @@ def main():
     
 
     root = tk.Tk()
-    root.geometry("750x470")
+    root.geometry("820x480")
 
     # Set the initial theme
     root.tk.call("source", LOCALDIR+os.sep+"sun-valley.tcl")
@@ -96,7 +97,8 @@ def main():
     frame2_3 = Frame(root, relief=FLAT)
     frame2 = ttk.LabelFrame(frame2_3, text="功能页面", labelanchor="n", relief=SUNKEN, borderwidth=1)
     frame3 = ttk.LabelFrame(frame2_3, text="信息反馈", labelanchor="nw", relief=SUNKEN, borderwidth=1)
-    text = Text(frame3,width=70,height=15) # 信息展示
+    textfont = "Consolas"
+    text = Text(frame3,width=70,height=15,font=textfont) # 信息展示
 
     filename = tk.StringVar()
     configname = tk.StringVar()
@@ -149,6 +151,19 @@ def main():
         text.update() # 实时返回信息
         text.yview('end')
 
+    def affgghsay(word):
+        line = ''
+        for i in range(len(word.encode("gb2312"))):
+            line += '─'  # gb2312中文是两个字节，利用这点填充全角半角
+        text.insert(END, 
+'''
+  (\︵/)   ┌%s┐
+ >(—﹏—)< < %s│
+  / ﹌ \╯  └%s┘
+ affggh 提醒您
+'''%(line, word, line))
+        text.yview('end')
+
     def runcmd(cmd):
         if os.name == 'nt':
             sFlag = False
@@ -157,10 +172,25 @@ def main():
         try:
             ret = subprocess.Popen(cmd, shell=sFlag, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             for i in iter(ret.stdout.readline, b''):
-                showinfo(i.strip().decode("UTF-8"))
+                text.insert(END, i.strip().decode("UTF-8") + "\n")
+                text.update()
+                text.yview(END)
         except subprocess.CalledProcessError as e:
             for i in iter(e.stdout.readline,b''):
-                showinfo(i.strip().decode("UTF-8"))
+                text.insert(END, i.strip().decode("UTF-8") + "\n")
+                text.update()
+                text.yview(END)
+
+    def get_output(cmd):
+        if os.name == 'nt':
+            sFlag = False
+        else:
+            sFlag = True  # fix file not found on linux
+        try:
+            ret = subprocess.getoutput(cmd)
+            return ret
+        except subprocess.CalledProcessError as e:
+            return e
 
     def thrun(fun):  # 调用子线程跑功能，防止卡住
         # showinfo("Test threading...")
@@ -175,11 +205,10 @@ def main():
                         "\n        此脚本为免费工具，如果你花钱买了你就是大傻逼\n")
 
     def test():
-        showinfo("Testing...")
-
+        affgghsay("Testing...")
 
     def showConfig():
-        showinfo("确认配置信息：")
+        affgghsay("确认配置信息")
         text.insert(END , "\n" + \
                  "             镜像架构 = " + "%s\n" %(arch.get()) + \
                  "             保持验证 = " + "%s\n" %(keepverity.get()) + \
@@ -210,7 +239,7 @@ def main():
                 recoverymodeflag.set(False)
             # showConfig()
         else:
-            showinfo("取消选择config文件")
+            affgghsay("取消选择config文件")
 
     def confirmConfig():
         showConfig()
@@ -220,10 +249,10 @@ def main():
 
     def recModeStatus():
         if recoverymodeflag.get()== True:
-            showinfo("开启recovery模式修补")
+            affgghsay("开启recovery模式修补")
             recoverymode.set("true")
         else:
-            showinfo("关闭recovery模式修补")
+            affgghsay("关闭recovery模式修补")
             recoverymode.set("false")
 
     def parseZip(filename):
@@ -286,17 +315,18 @@ def main():
             return True
 
     def PatchonWindows():
-        showinfo(" ---->> 修补开始")
+        affgghsay(" ---->> 修补开始")
+        start_time = time.time()
         if not os.access(filename.get(), os.F_OK):
-            showinfo("待修补文件不存在")
-            showinfo(" <<---- 修补失败")
+            affgghsay("待修补文件不存在")
+            affgghsay(" <<---- 修补失败")
             return False
 
         # cmd = [LOCALDIR+os.sep+'magisk_patcher.bat','patch','-i','%s' %(filename.get()),'-a','%s' %(arch.get()),'-kv','%s' %(keepverity.get()),'-ke','%s' %(keepforceencrypt.get()),'-pv','%s' %(patchvbmetaflag.get()),'-m','.\\prebuilt\\%s.apk' %(mutiseletion.get())]
         f = "." + os.sep + "prebuilt" + os.sep + mutiseletion.get() + ".apk"
         if not parseZip(f):
-            showinfo("apk文件解析失败")
-            showinfo(" <<---- 修补失败")
+            affgghsay("apk文件解析失败")
+            affgghsay(" <<---- 修补失败")
             return False
         if os.name == 'nt':
             cmd = "." + os.sep + "bin" + os.sep + ostype + os.sep + machine + os.sep + "busybox ash "
@@ -306,7 +336,7 @@ def main():
             showinfo("not support")
             return False
         if not os.access("./bin/boot_patch.sh", os.F_OK):
-            showinfo("Error : 关键脚本丢失")
+            affgghsay("Error : 关键脚本丢失")
             return False
         cmd += "." + os.sep + "bin" + os.sep + "boot_patch.sh  \"%s\"" %(filename.get())
         cmd += " %s" %keepverity.get()
@@ -316,9 +346,12 @@ def main():
         try:
             thrun(runcmd(cmd)) # 调用子线程运行减少卡顿
         except:
-            showinfo("Error : 出现问题，修补失败")
+            affgghsay("Error : 出现问题，修补失败")
         cleanUp()
-        showinfo(" <<--- 修补结束")
+        end_time = time.time()
+        use_time = end_time - start_time
+        affgghsay("    总共用时 [%.2f] s" %use_time)
+        affgghsay(" <<--- 修补结束")
 
     def PatchonDevice():
         showinfo(" ---->> 使用设备环境修补开始")
@@ -329,7 +362,7 @@ def main():
         showinfo(" <<---- 使用设备环境修补结束")
 
     def GenDefaultConfig():
-        showinfo(" ---->> 生成选中配置")
+        affgghsay(" ---->> 生成选中配置")
         if os.path.isfile('.' + os.sep + 'config.txt'):
             os.remove('.' + os.sep + 'config.txt')
         with open("." + os.sep + "config.txt", 'w') as f:
@@ -342,24 +375,64 @@ def main():
                     "magisk=%s\n" %("." + os.sep + "prebuilt" + os.sep + mutiseletion.get() + ".apk") )
                     # magisk=%s not use on python program, only worked on batch version
         if os.path.isfile('.' + os.sep + 'config.txt'):
-            showinfo("确认配置信息：")
+            affgghsay("确认配置信息：")
             text.insert(END, "\n" + \
                          "             镜像架构 = " + "%s\n" %(arch.get()) + \
                          "             保持验证 = " + "%s\n" %(keepverity.get()) + \
                          "             保持强制加密 = " + "%s\n" %(keepforceencrypt.get()) + \
                          "             修补vbmeta标志 = "+ "%s\n" %(patchvbmetaflag.get()) +\
                          "             Recovery Mode = " + "%s\n" %(recoverymode.get()))
-            showinfo("成功生成配置")
+            affgghsay("成功生成配置")
         else:
-            showinfo("选中配置生成失败")
-        showinfo(" <<---- 生成选中配置")
+            affgghsay("选中配置生成失败")
+        affgghsay(" <<---- 生成选中配置")
 
     def GetDeviceConfig():
-        showinfo(" ---->> 读取设备配置")
-        showinfo("    根据设备不同，生成速度也不同...请稍等...")
-        cmd = [LOCALDIR+os.sep+'magisk_patcher.bat','autoconfig','-m','.\\prebuilt\\%s.apk' %(mutiseletion.get())]
-        thrun(runcmd(cmd))
-        showinfo(" <<---- 读取设备配置")
+        affgghsay(" ---->> 读取设备配置")
+        affgghsay("    根据设备不同，生成速度也不同...请稍等...")
+        if os.name == 'nt':
+            cmd = "." + os.sep + "bin" + os.sep + ostype + os.sep + machine + os.sep + "adb get-state"
+        elif os.name == 'posix':
+            cmd = "adb get-state"
+        else:
+            affgghsay("系统不支持")
+            return False
+        deviceState = subprocess.getstatusoutput(cmd)
+        if deviceState[0] == 1:
+            affgghsay("设备未连接，或驱动未安装")
+            return False
+        elif deviceState[0] == 0:
+            if os.name == 'nt':
+                cmd = "." + os.sep + "bin" + os.sep + ostype + os.sep + machine + os.sep + "adb "
+            elif os.name == 'posix':
+                cmd = "adb "
+            if deviceState[1].strip(" ").strip("\n") == 'device':
+                tmppath = "/data/local/tmp"
+            elif deviceState[1].strip(" ").strip("\n") == 'recovery':
+                tmppath = "/tmp"
+            else:
+                affgghsay("不支持的设备状态")
+                return False
+            subprocess.getoutput(cmd + "push " + "." + os.sep + "bin" + os.sep + "get_config.sh %s/get_config.sh" %tmppath)
+            subprocess.getoutput(cmd + "shell chmod a+x %s/get_config.sh" %tmppath)
+            out = subprocess.getoutput(cmd + "shell sh %s/get_config.sh" %tmppath)
+            for i in out.splitlines():
+                if len(i.split("=")) > 1:
+                    var = i.split("=")[0].strip(" ").lower()
+                    t = i.split("=")[1].strip(" ").lower()
+                    if var == 'arch':
+                        arch.set(t)
+                    elif var == 'keepverity':
+                        keepverity.set(t)
+                    elif var == 'keepforceencrypt':
+                        keepforceencrypt.set(t)
+                    elif var == 'patchvbmetaflag':
+                        patchvbmetaflag.set(t)
+                    affgghsay("自动修改配置%s为%s" %(var, t))
+        else:
+            affgghsay("设备未知状态")
+            return False
+        affgghsay(" <<---- 读取设备配置")
 
     def opensource():
         webbrowser.open("https://github.com/affggh/Magisk_Patcher")
@@ -546,7 +619,7 @@ def main():
 
     tab2 = ttk.Frame(tabControl)  #增加新选项卡
     ttk.Button(tab2, text='使用当前配置\n修 补', command=PatchonWindows).pack(side=TOP, expand=NO, pady=3)
-    ttk.Button(tab2, text='连接设备环境\n修 补', command=PatchonDevice).pack(side=TOP, expand=NO, pady=3)
+    # ttk.Button(tab2, text='连接设备环境\n修 补', command=PatchonDevice).pack(side=TOP, expand=NO, pady=3)
     ttk.Label(tab2, text='使用设备环境修补不需要\n配置各种参数\n配置来源与设备').pack(side=BOTTOM, expand=NO, pady=3)
     ttk.Label(tab2, text='选择Magisk版本').pack(side=TOP, expand=NO, pady=3)
     ttk.Checkbutton(tab2, variable=recoverymodeflag, text="recovery修补", command=recModeStatus).pack(side=TOP, expand=NO, pady=3)
@@ -565,7 +638,7 @@ def main():
     tab3 = tk.Frame(tabControl)  #增加新选项卡
     ttk.Button(tab3, text='生成选中配置\nconfig.txt', command=lambda:thrun(GenDefaultConfig)).pack(side=TOP, expand=NO, pady=3)
     ttk.Button(tab3, text='读取设备配置\nconfig.txt', command=lambda:thrun(GetDeviceConfig)).pack(side=TOP, expand=NO, pady=3)
-    tk.Button(tab3, text='test', width=12, height=3, command=lambda:thrun(test)).pack(side=TOP, expand=NO, pady=3)
+    # ttk.Button(tab3, text='test', command=lambda:thrun(test)).pack(side=TOP, expand=NO, pady=3)
     tabControl.add(tab3, text='读取')  #把新选项卡增加到Notebook
     tab12.pack(side=TOP, expand=NO, fill=BOTH)
     tabControl.pack(side=TOP, expand=YES, fill="both")
@@ -595,25 +668,22 @@ def main():
         frame41.pack(side=RIGHT, expand=NO, pady=3)
     else:
         ttk.Button(frame4, text='捐赠', command=donateme).pack(side=RIGHT, expand=NO, pady=3)
-    frame4.pack(side=TOP, expand=NO, padx=10, ipady=5, fill=BOTH)
+    frame4.pack(side=TOP, expand=NO, padx=10, ipady=5, fill=X)
 
     imgLabel = ttk.Label(frame4,image=photo)#把图片整合到标签类中
     imgLabel.pack(side=LEFT, expand=NO, pady=3)
 
     text.image_create(END,image=photo)
     text.insert(END,"        Copyright(R) affggh  Apache2.0\n" \
-                    "欢迎使用我的Magisk修补脚本\n" \
                     "    当前脚本运行环境：\n" \
                     "                   [%s] [%s]\n" \
                     "此脚本为免费工具，如果你花钱买了你就是大傻逼\n" \
                     "普通流程：\n" \
                     "修改配置-->确认配置-->修补\n" \
-                    "高级点：\n" \
-                    "自己写个config.txt-->选择config.txt-->修补\n" \
                     "简单点：\n" \
                     "直接选个magisk版本-->插手机-->手机修补\n            （不过配置只能用手机的）\n" \
-                    "  注：recovery模式仅支持windows修补\n" \
-                    "\n        此脚本为免费工具，如果你花钱买了你就是大傻逼\n" %(ostype, machine))
+                    "  注：recovery模式仅支持windows修补\n" %(ostype, machine))
+    affgghsay("此脚本为免费工具，如果你花钱买了你就是大傻逼")
 
     # root.update()
     root.mainloop()
