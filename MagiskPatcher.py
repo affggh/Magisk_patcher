@@ -44,7 +44,7 @@ def main():
                 SHOW_DONATE_BUTTON = line.split('=', 1)[1]
                 SHOW_DONATE_BUTTON = SHOW_DONATE_BUTTON.replace('\n', '') #显示捐赠按钮
             elif((line.split('=', 1)[0]) == "GIT_USE_MIRROR"):
-                if (line.split('=', 1)[1]) == "True":
+                if (line.split('=', 1)[1].strip("\n").lower()) == "true":
                     GIT_USE_MIRROR = True
                 else:
                     GIT_USE_MIRROR = False
@@ -202,11 +202,28 @@ def main():
                         dlink.update({j['name'] : j['browser_download_url']})
         return dlink
 
-    def download(url, file):
+    def download(url, fileToSave):
+        print(GIT_USE_MIRROR)
+        showinfo(url)
+        def p(now, total):
+            return int((now/total)*100)
+        file = fileToSave
+        chunk_size = 1024
+        affgghsay("Starting download file...")
         r = requests.get(url, stream=True)
-        with open(file, "wb") as f:
-            for chunk in r.iter_content(chunk_size=512):
-                f.write(chunk)
+        total_size = int(r.headers['content-length'])
+        now = 0
+        progressbar['maximum'] = 100
+        with open(file, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=chunk_size):
+                if chunk:
+                    before = now
+                    f.write(chunk)
+                    now += chunk_size
+                    if now > before:
+                        # print("下载进度 [%s/100]" %progress(now, total_size), end='\r')
+                        progress.set(p(now, total_size))
+        progress.set(0)
         affgghsay("文件下载完成"+file)
 
     def thrun(fun):  # 调用子线程跑功能，防止卡住
@@ -317,15 +334,15 @@ def main():
                         if not (i.endswith("busybox.so") or i.endswith("magiskboot.so")):
                             f.extract(i, "tmp")
                 elif arch.get() == "arm":
-                    if i.startswith("lib/armeabi-v7a/") and i.endwith(".so"):
+                    if i.startswith("lib/armeabi-v7a/") and i.endswith(".so"):
                         if not (i.endswith("busybox.so") or i.endswith("magiskboot.so")):
                             f.extract(i, "tmp")
                 elif arch.get() == "x86_64":
-                    if i.startswith("lib/x86_64/") and i.endwith(".so"):
+                    if i.startswith("lib/x86_64/") and i.endswith(".so"):
                         if not (i.endswith("busybox.so") or i.endswith("magiskboot.so")):
                             f.extract(i, "tmp")
                 elif arch.get() == "x86":
-                    if i.startswith("lib/x86/") and i.endwith(".so"):
+                    if i.startswith("lib/x86/") and i.endswith(".so"):
                         if not (i.endswith("busybox.so") or i.endswith("magiskboot.so")):
                             f.extract(i, "tmp")
             for i in tl:
@@ -344,6 +361,7 @@ def main():
 
     def PatchonWindows():
         affgghsay(" ---->> 修补开始")
+        progressbar['maximum'] = 3
         start_time = time.time()
         if not os.access(filename.get(), os.F_OK):
             affgghsay("待修补文件不存在")
@@ -356,15 +374,18 @@ def main():
             affgghsay("apk文件解析失败")
             affgghsay(" <<---- 修补失败")
             return False
+        progress.set(1)
         if os.name == 'nt':
             cmd = "." + os.sep + "bin" + os.sep + ostype + os.sep + machine + os.sep + "busybox ash "
         elif os.name == 'posix':
             cmd = "." + os.sep + "bin" + os.sep + ostype + os.sep + machine + os.sep + "busybox ash "
         else:
             showinfo("not support")
+            progress.set(0)
             return False
         if not os.access("./bin/boot_patch.sh", os.F_OK):
             affgghsay("Error : 关键脚本丢失")
+            progress.set(0)
             return False
         cmd += "." + os.sep + "bin" + os.sep + "boot_patch.sh  \"%s\"" %(filename.get())
         cmd += " %s" %keepverity.get()
@@ -372,14 +393,18 @@ def main():
         cmd += " %s" %patchvbmetaflag.get()
         cmd += " %s" %recoverymode.get()
         try:
+            progress.set(2)
             thrun(runcmd(cmd)) # 调用子线程运行减少卡顿
         except:
+            progress.set(0)
             affgghsay("Error : 出现问题，修补失败")
+        progress.set(3)
         cleanUp()
         end_time = time.time()
         use_time = end_time - start_time
         affgghsay("    总共用时 [%.2f] s" %use_time)
         affgghsay(" <<--- 修补结束")
+        progress.set(0)
 
     def GenDefaultConfig():
         affgghsay(" ---->> 生成选中配置")
@@ -596,11 +621,14 @@ def main():
 
     def get_comboxlist():
         url = "https://api.github.com/repos/topjohnwu/Magisk/releases"
-        global dlink
-        dlink = ret_dlink(url)
         l = []
-        for i in dlink.keys():
-            l.append(i.replace(".apk", ""))
+        try:
+            global dlink
+            dlink = ret_dlink(url)
+            for i in dlink.keys():
+                l.append(i.replace(".apk", ""))
+        except:
+            affgghsay(" 从网络读取失败, 仅加载本地目录")
         for i in os.listdir("." + os.sep + "prebuilt"):
             if i.endswith(".apk"):
                 l.append(os.path.basename(i).replace(".apk", ""))
@@ -699,6 +727,8 @@ def main():
 
     # Frame 4 关于 和 清除信息t
     frame4 = Frame(root, relief=FLAT)
+    progress = tk.DoubleVar(value=0)
+    progressbar = ttk.Progressbar(frame4, length=200, variable=progress, mode='determinate')
     ttk.Button(frame4, text='清空信息', command=cleaninfo).pack(side=RIGHT, expand=NO, pady=3)
     ttk.Button(frame4, text='关于', command=About).pack(side=RIGHT, expand=NO, pady=3)
     ttk.Button(frame4, text='切换主题', command=change_theme).pack(side=RIGHT, expand=NO, pady=3)
@@ -709,6 +739,8 @@ def main():
         frame41.pack(side=RIGHT, expand=NO, pady=3)
     else:
         ttk.Button(frame4, text='捐赠', command=donateme).pack(side=RIGHT, expand=NO, pady=3)
+    progressbar.pack(side=RIGHT, expand=NO, padx=(0, 10))
+    ttk.Label(frame4, text="进度条：").pack(side=RIGHT, expand=NO, padx=(10, 0))
     frame4.pack(side=TOP, expand=NO, padx=10, ipady=5, fill=X)
 
     imgLabel = ttk.Label(frame4,image=photo)#把图片整合到标签类中

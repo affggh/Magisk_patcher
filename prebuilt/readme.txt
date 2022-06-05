@@ -1,1 +1,1 @@
-Python script now can auto download magisk file,but you still can put your own apk here
+论优先级，本地要高于在线的。
