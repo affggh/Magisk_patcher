@@ -29,7 +29,7 @@ import threading
 
 def main():
 
-    VERSION = "20220523"
+    VERSION = "20220611"
     LOCALDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
     # Read config from GUIcfg.txt
     configPath = LOCALDIR + os.sep + "bin" + os.sep + "GUIcfg.txt"
@@ -203,8 +203,6 @@ def main():
         return dlink
 
     def download(url, fileToSave):
-        print(GIT_USE_MIRROR)
-        showinfo(url)
         def p(now, total):
             return int((now/total)*100)
         file = fileToSave
