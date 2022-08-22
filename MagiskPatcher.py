@@ -22,6 +22,8 @@ import time
 import webbrowser
 import threading
 
+from boot_patch import Patch
+
 # Hide console , need ```pip install pywin32```
 # import win32gui, win32con
 # the_program_to_hide = win32gui.GetForegroundWindow()
@@ -73,6 +75,10 @@ def main():
             print("Error : Machine not support your device [%s]" %machine)
             sys.exit(1)
     
+    if os.name == 'nt':
+        os.environ['Path'] = os.path.abspath(os.path.dirname(sys.argv[0]))+os.sep+ostype+os.sep+machine+";"+os.getenv("Path")
+    elif os.name == 'posix':
+        os.environ['PATH'] = os.path.abspath(os.path.dirname(sys.argv[0]))+os.sep+ostype+os.sep+machine+":"+os.getenv("PATH")
 
     root = tk.Tk()
     root.geometry("820x480")
@@ -128,6 +134,26 @@ def main():
     global Thanks
 
     Thanks = 0 # 左下角的贴图说谢谢
+
+    class myStdout():	# 重定向类
+        def __init__(self):
+        	# 将其备份
+            self.stdoutbak = sys.stdout		
+            self.stderrbak = sys.stderr
+            # 重定向
+            sys.stdout = self
+            sys.stderr = self
+    
+        def write(self, info):
+            # info信息即标准输出sys.stdout和sys.stderr接收到的输出信息
+            text.insert('end', info)	# 在多行文本控件最后一行插入print信息
+            text.update()	# 更新显示的文本，不加这句插入的信息无法显示
+            text.see(tk.END)	# 始终显示最后一行，不加这句，当文本溢出控件最后一行时，不会自动显示最后一行
+    
+        def restoreStd(self):
+            # 恢复标准输出
+            sys.stdout = self.stdoutbak
+            sys.stderr = self.stderrbak
 
     os.chdir(LOCALDIR)
 
@@ -358,6 +384,11 @@ def main():
             return True
 
     def PatchonWindows():
+        def str2bool(var):
+            if var.lower() == "true":
+                return True
+            else:
+                return False
         affgghsay(" ---->> 修补开始")
         progressbar['maximum'] = 3
         start_time = time.time()
@@ -385,17 +416,12 @@ def main():
             affgghsay("Error : 关键脚本丢失")
             progress.set(0)
             return False
-        cmd += "." + os.sep + "bin" + os.sep + "boot_patch.sh  \"%s\"" %(filename.get())
-        cmd += " %s" %keepverity.get()
-        cmd += " %s" %keepforceencrypt.get()
-        cmd += " %s" %patchvbmetaflag.get()
-        cmd += " %s" %recoverymode.get()
-        try:
-            progress.set(2)
-            thrun(runcmd(cmd)) # 调用子线程运行减少卡顿
-        except:
-            progress.set(0)
-            affgghsay("Error : 出现问题，修补失败")
+        
+        Patch(str2bool(keepverity.get()),
+              str2bool(keepforceencrypt.get()),
+              str2bool(patchvbmetaflag.get()),
+              str2bool(recoverymode.get())).patchboot(filename.get())
+
         progress.set(3)
         cleanUp()
         end_time = time.time()
@@ -636,6 +662,8 @@ def main():
         if len(l) > 0:
             comboxlist.current(0)
         select()
+
+    mystd = myStdout()
 
     # button and text
     # Frame 1  文件选择
