@@ -31,7 +31,7 @@ from boot_patch import Patch
 
 def main():
 
-    VERSION = "20220611"
+    VERSION = "20220823"
     LOCALDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
     # Read config from GUIcfg.txt
     configPath = LOCALDIR + os.sep + "bin" + os.sep + "GUIcfg.txt"
