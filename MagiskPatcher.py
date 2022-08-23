@@ -22,6 +22,7 @@ import time
 import webbrowser
 import threading
 
+import splash
 from boot_patch import Patch
 
 # Hide console , need ```pip install pywin32```
@@ -410,10 +411,6 @@ def main():
             cmd = "." + os.sep + "bin" + os.sep + ostype + os.sep + machine + os.sep + "busybox ash "
         else:
             showinfo("not support")
-            progress.set(0)
-            return False
-        if not os.access("./bin/boot_patch.sh", os.F_OK):
-            affgghsay("Error : 关键脚本丢失")
             progress.set(0)
             return False
         
