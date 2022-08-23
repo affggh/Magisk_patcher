@@ -4,3 +4,5 @@
 config.txt
 test.py
 prebuilt/*.apk
+__pycache__
+test

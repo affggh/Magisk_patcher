@@ -234,7 +234,7 @@ def main():
         file = fileToSave
         chunk_size = 1024
         affgghsay("Starting download file...")
-        r = requests.get(url, stream=True)
+        r = requests.get(url, stream=True, allow_redirects=True)
         total_size = int(r.headers['content-length'])
         now = 0
         progressbar['maximum'] = 100
@@ -417,10 +417,12 @@ def main():
             progress.set(0)
             return False
         
-        Patch(str2bool(keepverity.get()),
+        bootpatch = Patch(str2bool(keepverity.get()),
               str2bool(keepforceencrypt.get()),
               str2bool(patchvbmetaflag.get()),
-              str2bool(recoverymode.get())).patchboot(filename.get())
+              str2bool(recoverymode.get()))
+        bootpatch.setmagiskboot(LOCALDIR+os.sep+"bin"+os.sep+ostype+os.sep+machine+os.sep+"magiskboot")
+        bootpatch.patchboot(filename.get())
 
         progress.set(3)
         cleanUp()
@@ -640,6 +642,8 @@ def main():
             rm(i)
         for i in d:
             rm(i)
+        if os.access("magiskpolicy", os.F_OK):
+            rm("magiskpolicy")
         cmd = "." + os.sep + "bin" + os.sep + ostype + os.sep + machine + os.sep + "magiskboot cleanup"
         thrun(runcmd(cmd))
 
