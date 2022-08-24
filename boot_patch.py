@@ -9,7 +9,8 @@ import subprocess
 class Patch:
     def __init__(self, keepverity=True, keepforceencrypt=True, patchvbmetaflag=False, recoverymode=False, debug=False):
         # init defaults
-        self.magiskboot = "magiskboot"
+        self.debug = debug
+        self.magiskboot = "./magiskboot"
         self.KEEPVERITY = keepverity
         self.KEEPFORCEENCRYPT = keepforceencrypt
         self.PATCHVBMETAFLAG = patchvbmetaflag
@@ -43,11 +44,18 @@ class Patch:
         os.environ['RECOVERYMODE'] = self.bool2str(self.RECOVERYMODE)
     
     def execv(self, cmd, verbose=False):
+        if self.debug:
+            print("Debug:")
+            print("Run program:", end='')
+            print(cmd)
+            out = sys.stdout
+        else:
+            out = subprocess.PIPE
         try:
             ret = subprocess.call(cmd,
-                                   shell=True,
+                                   shell=False,
                                    #stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE,
+                                   stdout=out,
                                    stderr=subprocess.STDOUT,
                                    env=self.env
                                    )
@@ -59,7 +67,7 @@ class Patch:
     def exegetout(self, cmd):
         try:
             ret = subprocess.check_output(cmd,
-                                   shell=True,
+                                   shell=False,
                                    #stdin=subprocess.PIPE,
                                    #stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT,
@@ -93,6 +101,7 @@ class Patch:
             self.CHROMEOS = True
         else:
             sys.stderr.write("! Unable to unpack boot image\n")
+            return False
         
         # check ramdisk status
         sys.stdout.write("- Checking ramdisk status\n")
