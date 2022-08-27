@@ -15,14 +15,22 @@ Linux support:
 # GUI THEME
 GUI ttk THEME from [Sun-Valley-ttk-theme](https://github.com/rdbende/Sun-Valley-ttk-theme)
 # Requirements
-Windows:    
+## Windows:    
     There is nothing need on windows    
     python script support python3.8+    
-Linux:    
+## Linux:    
+Debian/Ubuntu:
+````
     sudo apt install python3 python3-tk    
     pip install mttkinter    
     sudo apt install adb # if you need read config from device       
-     
+````    
+Archlinux:
+````
+    yay -S python adb
+    pip install mttkinter
+````   
+   
 NOTiCE : Batch script now has been removed, if you want using it     
          please download release version 1.0    
 
