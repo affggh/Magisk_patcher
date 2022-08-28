@@ -22,7 +22,10 @@ import time
 import webbrowser
 import threading
 
-import splash
+try:
+    import splash
+except:
+    pass
 from boot_patch import Patch
 
 # Hide console , need ```pip install pywin32```
