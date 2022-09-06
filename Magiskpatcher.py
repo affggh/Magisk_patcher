@@ -104,8 +104,6 @@ class myApp(ttk.Frame):
     def __downloadFile(self, url, fileToSave):
         def p(now, total):
             return int((now/total)*100)
-        if self.gitmirror.get() != "":
-            url = url.replace("https://github.com", self.gitmirror.get())
         file = fileToSave
         chunk_size = 1024
         try:
@@ -372,8 +370,12 @@ class myApp(ttk.Frame):
                     self.magisk = None
                 if not exist(LOCALDIR+os.sep+"prebuilt"+os.sep+self.magisk+".apk"):
                     self.__tlog("选中文件不存在，尝试从网络下载...\n")
+                    if self.gitmirror.get() != "":
+                        url = self.MAGISKDICT[self.magisk+".apk"].replace("https://github.com", self.gitmirror.get())
+                    if self.gitmirror.get().find("cdn.jsdelivr.net") >= 0:
+                        url = mp.magiskVresion2jsdelivr(self.magisk)
                     try:
-                        self.downloadFile(self.MAGISKDICT[self.magisk+".apk"], "prebuilt"+os.sep+self.magisk+".apk")
+                        self.downloadFile(url, "prebuilt"+os.sep+self.magisk+".apk")
                     except:
                         self.__tlog("下载失败...请手动将magisk apk格式安装包放入prebuilt文件夹内...\n")
             def verboseState(event):
@@ -389,7 +391,11 @@ class myApp(ttk.Frame):
                             l.append(i.strip('\n'))
                     return l
                 else:
-                    return ["https://github.com", "https://download.fastgit.org","https://gh.api.99988866.xyz/https://github.com", "https://kgithub.com"]
+                    return ["https://github.com", 
+                            "https://download.fastgit.org",
+                            "https://gh.api.99988866.xyz/https://github.com", 
+                            "https://kgithub.com", 
+                            "https://cdn.jsdelivr.net"]
             noteFrame = ttk.Frame(self)
             notebook = ttk.Notebook(noteFrame)
             tab_config = ttk.Frame(notebook)

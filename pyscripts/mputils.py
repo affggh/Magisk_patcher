@@ -19,5 +19,14 @@ def getReleaseList(GitUrl):
                 dlink.update({j['name'] : j['browser_download_url']})
     return dlink
 
+def magiskVresion2jsdelivr(ver):
+    '''
+    input Magisk-v22.5 return jsdelivr download link
+    '''
+    ver = ver.strip("Magisk-v")
+    return "https://cdn.jsdelivr.net/gh/topjohnwu/magisk-files@%s/app-release.apk" %ver
+
+
+
 if __name__ == '__main__':
     print(getReleaseList("https://api.github.com/repos/topjohnwu/Magisk/releases"))
