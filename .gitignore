@@ -6,3 +6,4 @@ test.py
 prebuilt/*.apk
 __pycache__/*
 test/*
+pyscripts/__pycache__/*
