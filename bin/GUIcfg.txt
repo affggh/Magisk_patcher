@@ -1,4 +1,0 @@
-THEME=light
-DONATE_BUTTON=False
-GIT_USE_MIRROR=True
-GIT_MIRROR=https://hub.fastgit.xyz/
