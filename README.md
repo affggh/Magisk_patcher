@@ -2,7 +2,9 @@
 *Patch boot with magisk on windows/linux    
 Using python tkinter    
 Windows support:    
-    Windows 10, 11 amd64 only    
+    Windows 10, 11 amd64 only      
+    if you are using 32bit windows, please install python and modules    
+    and run script instead exe file....       
 Linux support:    
     Test on Ubuntu 20.04 LTS    
     support arch :    
@@ -13,11 +15,12 @@ Linux support:
 # GUI screen shortcut
 ![](bin/gui.png)
 # GUI THEME
-GUI ttk THEME from [Sun-Valley-ttk-theme](https://github.com/rdbende/Sun-Valley-ttk-theme)
+GUI ttk THEME from [ttkbootstrap](https://ttkbootstrap.readthedocs.io/)
 # Requirements
 ## Windows:    
     There is nothing need on windows    
     python script support python3.8+    
+    if windows 32bit use python run script instead run exe
 ## Linux:    
 Debian/Ubuntu:
 ````
@@ -30,7 +33,11 @@ Archlinux:
     yay -S python adb
     pip install mttkinter
 ````   
-   
+### Run with python
+``` bash
+python3 -m pip install ttkbootstrap
+python3 ./Magiskpatcher.py
+```    
 NOTiCE : Batch script now has been removed, if you want using it     
          please download release version 1.0    
 
