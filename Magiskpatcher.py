@@ -381,6 +381,15 @@ class myApp(ttk.Frame):
                     if b: return False 
                     else: return True
                 self.__tlog("输出详细信息[%s]\n" %boolReverse(self.verbose.get()))
+            def getAvailableGitMirror():
+                l = []
+                if os.access(LOCALDIR + os.sep + "gitmirrorlist.txt", os.F_OK):
+                    with open(LOCALDIR + os.sep + "gitmirrorlist.txt", 'r') as f:
+                        for i in f.readlines():
+                            l.append(i.strip('\n'))
+                    return l
+                else:
+                    return ["https://github.com", "https://download.fastgit.org","https://gh.api.99988866.xyz/https://github.com", "https://kgithub.com"]
             noteFrame = ttk.Frame(self)
             notebook = ttk.Notebook(noteFrame)
             tab_config = ttk.Frame(notebook)
@@ -438,7 +447,7 @@ class myApp(ttk.Frame):
             # github mirror
             ttk.Separator(tab_else).pack(side='top', fill='x', padx=5, pady=5, expand='no')
             ttk.Label(tab_else, text="github镜像源", anchor='w').pack(side='top', padx=5, pady=5, fill='x')
-            available_gitmirror = ["https://github.com", "https://download.fastgit.org","https://gh.api.99988866.xyz/https://github.com"]
+            available_gitmirror = getAvailableGitMirror()
             gitMirrorCombobox = ttk.Combobox(tab_else, values=available_gitmirror, textvariable=self.gitmirror)
             gitMirrorCombobox.set(available_gitmirror[1])
             gitMirrorCombobox.pack(side='top', fill='x', expand='no', padx=5, pady=5)
