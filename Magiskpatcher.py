@@ -43,7 +43,7 @@ import pyscripts.archdetect as archdetect
 from pyscripts.boot_patch import Patch
 from pyscripts.chkdevice import chkdevice
 
-VERSION = 20220905
+VERSION = 20220908
 AUTHOR = "affggh"
 
 WIDTH = 800
