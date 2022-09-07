@@ -35,8 +35,12 @@ Archlinux:
 ````   
 ### Run with python
 ``` bash
-python3 -m pip install ttkbootstrap
+python3 -m pip install ttkbootstrap pillow
 python3 ./Magiskpatcher.py
+# If you are using ubuntu
+sudo apt install python3-pil python3-pil.imagetk
+# If you are using arch linux
+sudo pacman -S python-pillow
 ```    
 NOTiCE : Batch script now has been removed, if you want using it     
          please download release version 1.0    
