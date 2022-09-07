@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-from cgitb import text
-from concurrent.futures import thread
 import os, sys
 import subprocess
 import time
