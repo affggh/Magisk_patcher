@@ -267,7 +267,7 @@ class myApp(ttk.Frame):
         if self.magisk == None:
             self.__tlog("未选择magisk修补版本\n")
             return False
-        if os.access(LOCALDIR + os.sep + "new-boot.img"):  # Delete exist patched image before patch
+        if os.access(LOCALDIR + os.sep + "new-boot.img", os.F_OK):  # Delete exist patched image before patch
             os.remove(LOCALDIR + os.sep + "new-boot.img")
         if not self.__parseApk():
             self.__tlog("Error : Cannot parse apk file...\n")
