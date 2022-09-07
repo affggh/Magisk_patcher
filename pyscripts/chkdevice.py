@@ -1,10 +1,10 @@
 import subprocess
-import time
+import time, os
 
 class chkdevice:
     def __init__(self):
         self.adb = "adb"
-        # self.fastboot = "fastboot"
+        self.fastboot = "fastboot"
     def setadb(self, path):
         if type(path) != str:
             raise TypeError("adb path must be str")
@@ -13,6 +13,16 @@ class chkdevice:
         if type(path) != str:
             raise TypeError("adb path must be str")
         self.fastboot = path
+
+    def runcmd(self, cmd):
+        if os.name == 'posix':
+            creationflags = 0
+        elif os.name == 'nt':  # if on windows ,create a process with hidden console
+            creationflags = subprocess.CREATE_NO_WINDOW
+        else:
+            creationflags = 0
+        ret = subprocess.run(cmd, shell=False, creationflags=creationflags, stderr=None, stdout=subprocess.PIPE)
+        return [ret.returncode, ret.stdout.decode('utf-8').strip('\n')]
 
     def isAdbAlive(self):
         '''
@@ -29,18 +39,18 @@ class chkdevice:
         # if not isAdbAlive(): subprocess.getoutput("adb start-server") # 启动adb服务
         st_list = ['device', 'recovery', 'rescue', 'sideload', 'bootloader', 'disconnect']
         fb_list = ['fastboot']
-        status = subprocess.getstatusoutput([self.adb, "get-state"])
+        status = self.runcmd([self.adb, "get-state"])
         if status[0] == 0:
             for i in st_list:
                 if status[1].strip(' ') == i:
                     return i
         else:
-            status2 = subprocess.getoutput([self.fastboot, "devices"])
+            status2 = self.runcmd([self.fastboot, "devices"])[1]
             if not status2.strip(' ')=='':
                 return fb_list[0]
-        return False
         if kill_adb:
-            subprocess.getoutput([self.adb, "kill-server"])
+            self.runcmd([self.adb, "kill-server"])
+        return None
 
     def loopUntil(self, state, maxretries=20, waitretries=1):
         for i in range(maxretries):
@@ -53,10 +63,14 @@ class chkdevice:
             return False
 
     def getFastbootPartitionName(self):
-        s = subprocess.getoutput([self.fastboot, "getvar", "all"])
+        s = self.runcmd([self.fastboot, "getvar", "all"])[1]
         part = []
         for i in s.splitlines():
             if len(i.split(" "))>1:
                 if i.split(" ")[1].split(":")[0].startswith("partition-type"):
                     part.append(i.split(" ")[1].split(":")[1])
         return part
+
+if __name__ == '__main__':
+    c = chkdevice()
+    print(c.chk_status())

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from cgitb import text
 from concurrent.futures import thread
 import os, sys
@@ -18,8 +19,17 @@ try:
 except:
     if os.name == 'nt':
         os.system("pip install ttkbootstrap")
+        os.system("pip install pillow")
     elif os.name == 'posix':
+        if os.system("command -v pacman") == 0: # Arch linux
+            os.system("sudo pacman -S python-pillow")
+        if os.system("command -v apt") == 0: # Ubuntu
+            os.system("sudo apt install python3-pil python3-pil.imagetk")
+        else:
+            sys.stderr.write("OS not support...\n")
+            sys.exit(1)
         os.system("pip3 install ttkbootstrap")
+        os.system("pip3 install pillow")
     else:
         raise SystemError("Not support on %s" %os.name)
 finally:
@@ -40,6 +50,9 @@ AUTHOR = "affggh"
 
 WIDTH = 800
 HEIGHT = 440
+
+if os.name == 'posix':
+    HEIGHT += 40
 
 LOCALDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 
@@ -134,7 +147,13 @@ class myApp(ttk.Frame):
 
     def __readFromDevice(self):
         def runcmd(cmd):
-            ret = subprocess.run(cmd, shell=False, stderr=None, stdout=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
+            if os.name == 'posix':
+                creationflags = 0
+            elif os.name == 'nt':  # if on windows ,create a process with hidden console
+                creationflags = subprocess.CREATE_NO_WINDOW
+            else:
+                creationflags = 0
+            ret = subprocess.run(cmd, shell=False, stderr=None, stdout=subprocess.PIPE, creationflags=creationflags)
             return ret.stdout.decode('utf-8')
         def str2bool(var):
             if var.lower() == "true": return True
@@ -248,6 +267,8 @@ class myApp(ttk.Frame):
         if self.magisk == None:
             self.__tlog("未选择magisk修补版本\n")
             return False
+        if os.access(LOCALDIR + os.sep + "new-boot.img"):  # Delete exist patched image before patch
+            os.remove(LOCALDIR + os.sep + "new-boot.img")
         if not self.__parseApk():
             self.__tlog("Error : Cannot parse apk file...\n")
             return False
@@ -512,22 +533,22 @@ if __name__ == '__main__':
     Magisk Patcher by %s Version:%s
     这是一个可以在电脑上修补任意架构的简单小工具\
 ''' %(AUTHOR, VERSION)
-        win = tk.Toplevel(root)
+        win = ttk.Toplevel(root)
         win.title("关于")
         win.geometry("360x280")
         win.update()
-        win.minsize(win.winfo_width(), win.winfo_height())
-        x_cordinate = int((win.winfo_screenwidth() / 2) - (win.winfo_width() / 2))
-        y_cordinate = int((win.winfo_screenheight() / 2) - (win.winfo_height() / 2))
-        win.geometry("+{}+{}".format(x_cordinate, y_cordinate))
-        logofont = tkfont.Font(family="Gabriola", size=50, weight=tkfont.BOLD)
-        logo = ttk.Label(win, text='Magisk Patcher', font=logofont, width=360, anchor="center")
-        label = ttk.Label(win, image=LOGOIMG)
-        button_about = ttk.Button(win, text="浏览项目地址", command=lambda:webbrowser.open(MAGISKPATCHERGIT))
-        button_about.pack(side='bottom', anchor='e', expand='yes', padx=10)
-        label.pack(side='top', anchor='center', padx=5, pady=5)
-        logo.pack(side='top', expand=True, fill='x')
-        ttk.Label(win, text=introduce, anchor='center').pack(side='top', expand=True, fill='both')
+        #win.minsize(win.winfo_width(), win.winfo_height())
+        #x_cordinate = int((win.winfo_screenwidth() / 2) - (win.winfo_width() / 2))
+        #y_cordinate = int((win.winfo_screenheight() / 2) - (win.winfo_height() / 2))
+        #win.geometry("+{}+{}".format(x_cordinate, y_cordinate))
+        #logofont = tkfont.Font(family="Gabriola", size=50, weight=tkfont.BOLD)
+        #logo = ttk.Label(win, text='Magisk Patcher', font=logofont, width=360, anchor="center")
+        # label = ttk.Label(win, image=LOGOIMG)
+        #button_about = ttk.Button(win, text="浏览项目地址", command=lambda:webbrowser.open(MAGISKPATCHERGIT))
+        #button_about.pack(side='bottom', anchor='e', expand='yes', padx=10)
+        #label.pack(side='top', anchor='center', padx=5, pady=5)
+        #logo.pack(side='top', expand=True, fill='x')
+        #ttk.Label(win, text=introduce, anchor='center').pack(side='top', expand=True, fill='both')
 
     def setupMenubar():
         menubar = ttk.Menu(root)
@@ -571,7 +592,8 @@ Magisk releases 获取使用Github的api \n\t[%s]
     myapp.Text.insert('end', introduce)
 
     root.resizable(0, 0)
-    root.iconbitmap(LOCALDIR +  os.sep + "bin" + os.sep + "logo.ico")
+    if os.name == 'nt':  # not work on linux
+    	root.iconbitmap(LOCALDIR +  os.sep + "bin" + os.sep + "logo.ico")
     root.update()
 
     root.mainloop()

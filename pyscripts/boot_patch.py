@@ -17,6 +17,12 @@ class Patch:
         self.RECOVERYMODE = recoverymode
         self.CHROMEOS = False              # Only pixel C need sign with futility
         # self.EXERETURNCODE = 0
+        if os.name == 'nt':
+            self.creationflags = subprocess.CREATE_NO_WINDOW
+        elif os.name == 'posix':
+            self.creationflags = 0
+        else:
+            self.creationflags = 0
         self.env = {
                         'KEEPVERITY': self.bool2str(self.KEEPVERITY),
                         'KEEPFORCEENVRYPT': self.bool2str(self.KEEPFORCEENCRYPT),
@@ -55,7 +61,7 @@ class Patch:
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT,
                                    env=self.env,
-                                   creationflags=subprocess.CREATE_NO_WINDOW
+                                   creationflags=self.creationflags
                                 )
         except:
             sys.stderr.write("! Cannot execute program\n")
@@ -78,7 +84,7 @@ class Patch:
                                           'RECOVERYMODE': self.bool2str(self.RECOVERYMODE)
                                       },
                                    encoding="utf-8",
-                                   creationflags=subprocess.CREATE_NO_WINDOW
+                                   creationflags=self.creationflags
                                    )
             return ret
         except:
