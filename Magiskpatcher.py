@@ -46,17 +46,13 @@ from pyscripts.chkdevice import chkdevice
 VERSION = 20220908
 AUTHOR = "affggh"
 
-WIDTH = 800
-HEIGHT = 440
-
-if os.name == 'posix':
-    HEIGHT += 40
-
 LOCALDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 
 MAGISKGIT = "https://github.com/topjohnwu/Magisk"
 MAGISKGITAPI = "https://api.github.com/repos/topjohnwu/Magisk/releases"
 MAGISKPATCHERGIT = "https://github.com/affggh/Magisk_patcher"
+
+os.chdir(LOCALDIR)
 
 class myStdout():	# 重定向类
     def __init__(self, text):
@@ -422,8 +418,8 @@ class myApp(ttk.Frame):
             tab_else = ttk.Frame(notebook)
 
             # Text
-            self.Text = ttk.ScrolledText(noteFrame, height=3)
-            self.Text.pack(side='right', expand='yes', fill='both',padx=5, pady=5)
+            self.Text = ttk.ScrolledText(noteFrame, height=3, width=100)
+            self.Text.pack(side='right', expand='no', fill='both',padx=5, pady=5)
 
             # Tab config
             arch_Frame = ttk.LabelFrame(tab_config, text="架构", labelanchor='nw')
@@ -450,8 +446,8 @@ class myApp(ttk.Frame):
             confirm_button.pack(side='bottom', expand='no', padx=5, pady=5, fill='x')
 
             # patch Treeview
-            magiskMenu = ttk.Treeview(tab_patch, show='tree', columns='magisk')
-            magiskMenu.pack(side='top', expand='no', fill='y', padx=5, pady=5)
+            magiskMenu = ttk.Treeview(tab_patch, show='', height=12, columns='magisk')
+            magiskMenu.pack(side='top', expand='no', fill='both', padx=5, pady=5)
             magiskMenu.column('magisk', width=5, anchor='w')
             updateTree(False)
             magiskMenu.bind("<ButtonRelease-1>", selectMagisk)
@@ -473,7 +469,7 @@ class myApp(ttk.Frame):
             ttk.Separator(tab_else).pack(side='top', fill='x', padx=5, pady=5, expand='no')
             ttk.Label(tab_else, text="github镜像源", anchor='w').pack(side='top', padx=5, pady=5, fill='x')
             available_gitmirror = getAvailableGitMirror()
-            gitMirrorCombobox = ttk.Combobox(tab_else, values=available_gitmirror, textvariable=self.gitmirror)
+            gitMirrorCombobox = ttk.Combobox(tab_else, values=available_gitmirror, textvariable=self.gitmirror, width=15)
             gitMirrorCombobox.set(available_gitmirror[1])
             gitMirrorCombobox.pack(side='top', fill='x', expand='no', padx=5, pady=5)
 
@@ -535,18 +531,18 @@ if __name__ == '__main__':
         win.title("关于")
         win.geometry("360x280")
         win.update()
-        #win.minsize(win.winfo_width(), win.winfo_height())
-        #x_cordinate = int((win.winfo_screenwidth() / 2) - (win.winfo_width() / 2))
-        #y_cordinate = int((win.winfo_screenheight() / 2) - (win.winfo_height() / 2))
-        #win.geometry("+{}+{}".format(x_cordinate, y_cordinate))
-        #logofont = tkfont.Font(family="Gabriola", size=50, weight=tkfont.BOLD)
-        #logo = ttk.Label(win, text='Magisk Patcher', font=logofont, width=360, anchor="center")
-        # label = ttk.Label(win, image=LOGOIMG)
-        #button_about = ttk.Button(win, text="浏览项目地址", command=lambda:webbrowser.open(MAGISKPATCHERGIT))
-        #button_about.pack(side='bottom', anchor='e', expand='yes', padx=10)
-        #label.pack(side='top', anchor='center', padx=5, pady=5)
-        #logo.pack(side='top', expand=True, fill='x')
-        #ttk.Label(win, text=introduce, anchor='center').pack(side='top', expand=True, fill='both')
+        win.minsize(win.winfo_width(), win.winfo_height())
+        x_cordinate = int((win.winfo_screenwidth() / 2) - (win.winfo_width() / 2))
+        y_cordinate = int((win.winfo_screenheight() / 2) - (win.winfo_height() / 2))
+        win.geometry("+{}+{}".format(x_cordinate, y_cordinate))
+        logofont = tkfont.Font(family="Gabriola", size=50, weight=tkfont.BOLD)
+        logo = ttk.Label(win, text='Magisk Patcher', font=logofont, width=360, anchor="center")
+        label = ttk.Label(win, image=LOGOIMG)
+        button_about = ttk.Button(win, text="浏览项目地址", command=lambda:webbrowser.open(MAGISKPATCHERGIT))
+        button_about.pack(side='bottom', anchor='e', expand='no', padx=10)
+        label.pack(side='top', anchor='center', padx=5, pady=5)
+        logo.pack(side='top', expand='no')
+        ttk.Label(win, text=introduce, anchor='center').pack(side='top', expand='no')
 
     def setupMenubar():
         menubar = ttk.Menu(root)
@@ -554,16 +550,13 @@ if __name__ == '__main__':
         for i in ttk.Style().theme_names():
             menubar_theme.add_command(label=i, command=lambda x=i:change_theme(x))
         menubar.add_cascade(label="主题", menu=menubar_theme)
-        menubar.add_cascade(label="关于", command=aboutUs)
+        menubar.add_cascade(label="关于", command=lambda:aboutUs())
         root['menu'] = menubar
 
     root = ttk.Window(
-        title="Magisk Patcher",
-        size=(WIDTH, HEIGHT),
+        title="Magisk Patcher"
+        # size=(WIDTH, HEIGHT),
     )
-    position = (( root.winfo_screenwidth() / 2 ) - ( WIDTH / 2 ), \
-            ( root.winfo_screenheight() / 2 ) - ( HEIGHT / 2 ))
-    root.geometry("+%d+%d" %position)
 
     # Setup images
     LOGOIMG = ttk.PhotoImage(file=LOCALDIR + os.sep + "bin" + os.sep + "logo.png")
@@ -590,8 +583,11 @@ Magisk releases 获取使用Github的api \n\t[%s]
     myapp.Text.insert('end', introduce)
 
     root.resizable(0, 0)
-    if os.name == 'nt':  # not work on linux
-    	root.iconbitmap(LOCALDIR +  os.sep + "bin" + os.sep + "logo.ico")
     root.update()
+    position = (( root.winfo_screenwidth() / 2 ) - ( root.winfo_width() / 2 ), \
+                ( root.winfo_screenheight() / 2 ) - ( root.winfo_height() / 2 ))
+    root.geometry("+%d+%d" %position)
+    if os.name == 'nt':  # not work on linux
+        root.iconbitmap(LOCALDIR +  os.sep + "bin" + os.sep + "logo.ico")
 
     root.mainloop()
