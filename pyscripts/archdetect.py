@@ -3,6 +3,8 @@ import sys, platform
 def retTypeAndMachine():
     # Detect machine and ostype
     ostype = platform.system().lower()
+    if ostype.find("cygwin") >= 0:  # Support cygwin x11
+        ostype = "windows"
     machine = platform.machine().lower()
     if machine == 'aarch64_be' \
         or machine == 'armv8b' \
