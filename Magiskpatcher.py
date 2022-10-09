@@ -367,7 +367,7 @@ class myApp(ttk.Frame):
             "kernel_dtb",
             "recovery_dtbo",
             "dtb",
-            # "magiskpolicy",
+            "magiskpolicy",
             "assets"
         ]
         print("- Clean Up ...")
