@@ -7,3 +7,6 @@ prebuilt/*.apk
 __pycache__/*
 test/*
 pyscripts/__pycache__/*
+build/*
+dist/*
+*.spec
