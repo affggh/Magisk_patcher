@@ -22,7 +22,7 @@ class chkdevice:
         else:
             creationflags = 0
         ret = subprocess.run(cmd, shell=False, creationflags=creationflags, stderr=None, stdout=subprocess.PIPE)
-        return [ret.returncode, ret.stdout.decode('utf-8').strip('\n')]
+        return [ret.returncode, ret.stdout.decode('utf-8').strip('\n').strip('\r')]
 
     def isAdbAlive(self):
         '''

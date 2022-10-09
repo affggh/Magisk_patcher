@@ -27,7 +27,7 @@ except:
             sys.stderr.write("OS not support...\n")
             sys.exit(1)
         os.system("pip3 install ttkbootstrap")
-        os.system("pip3 install pillow")
+        # os.system("pip3 install pillow")
     else:
         raise SystemError("Not support on %s" %os.name)
 finally:
@@ -43,7 +43,7 @@ import pyscripts.archdetect as archdetect
 from pyscripts.boot_patch import Patch
 from pyscripts.chkdevice import chkdevice
 
-VERSION = 20220908
+VERSION = 20221008
 AUTHOR = "affggh"
 
 LOCALDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
@@ -94,7 +94,22 @@ class myApp(ttk.Frame):
         self.gitmirror = ttk.StringVar(value=None)
         self.MAGISKLIST = []  # "magiskname"
         self.MAGISKDICT = {}  # "magiskname" : "download url"
+        self.FillProgress = False
         self.__setupWidgets()
+
+    def __fillProgress(self):
+        while(self.FillProgress):
+            self.progress.set(self.progress.get()+1)
+            time.sleep(0.5)
+    
+    def fillProgress(self):
+        self.FillProgress = True
+        th = threading.Thread(target=self.__fillProgress)
+        th.daemon = True
+        th.start()
+    
+    def stopfillProgress(self):
+        self.FillProgress = False
 
     def __chooseFile(self):
         f = filedialog.askopenfilename()
@@ -139,16 +154,53 @@ class myApp(ttk.Frame):
         th.daemon = True
         th.start()
 
+    def __fixEnv(self):
+        c = chkdevice()
+        if os.name == 'nt':
+            c.setadb(LOCALDIR + os.sep + 
+                     "bin" + os.sep +
+                     self.ostype + os.sep +
+                     self.nativearch + os.sep +
+                     "adb")
+            c.setfastboot(LOCALDIR + os.sep + 
+                          "bin" + os.sep +
+                          self.ostype + os.sep +
+                          self.nativearch + os.sep +
+                          "fastboot")
+        state = c.chk_status()
+        print(state)
+        if not state == "device" or state == "recovery":
+            print("设备不存在")
+            return
+
+        if self.magisk != None:
+            self.__parseApk()
+        else:
+            print("请先到修补页面选择一个magisk版本")
+            return
+        
+        for i in ["magisk32", "magisk64", "magiskinit", "magiskboot", "busybox"]:
+            if os.access(i, os.F_OK):
+                shutil.move(i, os.path.join("assets", i))
+    
+        print("- Remove old $MAGISKBIN")
+        if os.name == 'nt':
+            adb = os.path.join(LOCALDIR, "bin", self.ostype, self.nativearch, "adb")
+        else:
+            adb = "adb"
+
+        mp.runcmd([adb, "shell", "rm", "-rf", "/data/adb/magisk"])
+
+        print("- Push new files")
+        mp.runcmd([adb, "push", "assets", "/data/local/tmp/assets"])
+        mp.runcmd([adb, "shell", "su", "-c", "mv", "/data/local/tmp/assets", "/data/adb/magisk"])
+        print("- Chmod files")
+        mp.runcmd([adb, "shell", "su", "-c", "chmod", "-R", "0755", "/data/adb/magisk/*"])
+        mp.runcmd([adb, "shell", "su", "-c", "chown", "-R", "0:0", "/data/adb/magisk"])
+
+        self.cleanup()
+
     def __readFromDevice(self):
-        def runcmd(cmd):
-            if os.name == 'posix':
-                creationflags = 0
-            elif os.name == 'nt':  # if on windows ,create a process with hidden console
-                creationflags = subprocess.CREATE_NO_WINDOW
-            else:
-                creationflags = 0
-            ret = subprocess.run(cmd, shell=False, stderr=None, stdout=subprocess.PIPE, creationflags=creationflags)
-            return ret.stdout.decode('utf-8')
         def str2bool(var):
             if var.lower() == "true": return True
             else: return False
@@ -179,7 +231,7 @@ class myApp(ttk.Frame):
             [c.adb, "shell", "sh", tmp + "/" + "get_config.sh"]
         ]
         for cmd in cmds:
-            ret = runcmd(cmd)
+            ret = mp.runcmd(cmd)
         print("读取出的配置为")
         for i in ret.splitlines():
             var, val = eq(i)
@@ -216,41 +268,45 @@ class myApp(ttk.Frame):
             l = f.namelist() # l equals list
             tl = []  # tl equals total get list
             for i in l:
-                if not i.find("assets/") == -1 or \
-                   not i.find("lib/") == -1:
+                if i.startswith("assets/") or \
+                   i.startswith("lib/"):
                     tl.append(i)
+
             buf = f.read("assets/util_functions.sh")
             mVersion = returnMagiskVersion(buf)
             print("Parse Magisk Version : " + mVersion + "\n")
             for i in tl:
-                if self.arch.get() == "arm64":
-                    if i.startswith("lib/arm64-v8a/") and i.endswith(".so"):
-                        if not (i.endswith("busybox.so") or i.endswith("magiskboot.so")):
-                            f.extract(i, "tmp")
-                elif self.arch.get() == "arm":
-                    if i.startswith("lib/armeabi-v7a/") and i.endswith(".so"):
-                        if not (i.endswith("busybox.so") or i.endswith("magiskboot.so")):
-                            f.extract(i, "tmp")
-                elif self.arch.get() == "x86_64":
-                    if i.startswith("lib/x86_64/") and i.endswith(".so"):
-                        if not (i.endswith("busybox.so") or i.endswith("magiskboot.so")):
-                            f.extract(i, "tmp")
-                elif self.arch.get() == "x86":
-                    if i.startswith("lib/x86/") and i.endswith(".so"):
-                        if not (i.endswith("busybox.so") or i.endswith("magiskboot.so")):
-                            f.extract(i, "tmp")
+                if i.startswith("assets"):
+                    f.extract(i, "tmp")
+                else:
+                    if self.arch.get() == "arm64":
+                        if i.startswith("lib/arm64-v8a/") and i.endswith(".so"):
+                                f.extract(i, "tmp")
+                    elif self.arch.get() == "arm":
+                        if i.startswith("lib/armeabi-v7a/") and i.endswith(".so"):
+                                f.extract(i, "tmp")
+                    elif self.arch.get() == "x86_64":
+                        if i.startswith("lib/x86_64/") and i.endswith(".so"):
+                                f.extract(i, "tmp")
+                    elif self.arch.get() == "x86":
+                        if i.startswith("lib/x86/") and i.endswith(".so"):
+                                f.extract(i, "tmp")
             for i in tl:
-                if self.arch.get() == "arm64" and not os.access("libmagisk32.so", os.F_OK):
-                    if i == "lib/armeabi-v7a/libmagisk32.so":
-                        f.extract("lib/armeabi-v7a/libmagisk32.so", "tmp")
-                elif self.arch.get() == "x86_64" and not os.access("libmagisk32.so", os.F_OK):
-                    if i == "lib/x86/libmagisk32.so":
-                        f.extract("lib/armeabi-v7a/libmagisk32.so", "tmp")
+                if not i.startswith("assets"):
+                    if self.arch.get() == "arm64" and not os.access("libmagisk32.so", os.F_OK):
+                        if i == "lib/armeabi-v7a/libmagisk32.so":
+                            f.extract("lib/armeabi-v7a/libmagisk32.so", "tmp")
+                    elif self.arch.get() == "x86_64" and not os.access("libmagisk32.so", os.F_OK):
+                        if i == "lib/x86/libmagisk32.so":
+                            f.extract("lib/armeabi-v7a/libmagisk32.so", "tmp")
             f.close()
+            shutil.move("tmp/assets/", "assets/")
             for root, dirs, files in os.walk("tmp"):
                 for file in files:
                     if file.endswith(".so"):
                         shutil.move(root+os.sep+file, rename(os.path.basename(file)))
+            if os.access("magiskpolicy", os.F_OK):
+                shutil.move("magiskpolicy", "assets/magiskpolicy")
             shutil.rmtree("tmp")
             return True
 
@@ -267,8 +323,7 @@ class myApp(ttk.Frame):
             self.__tlog("Error : Cannot parse apk file...\n")
             return False
         self.progress.set(20)
-        self.progressBar.start(50)
-        self.progressBar.step(2)
+        self.fillProgress()
         p = Patch(self.keepverity.get(),
                   self.keepforceencrypt.get(),
                   self.patchvbmetaflag.get(),
@@ -280,6 +335,7 @@ class myApp(ttk.Frame):
                         self.nativearch + os.sep +
                         "magiskboot")
         p.patchboot(self.filename.get())
+        self.stopfillProgress()
         self.progress.set(80)
         if os.access("new-boot.img", os.F_OK):
             self.progress.set(100)
@@ -311,7 +367,8 @@ class myApp(ttk.Frame):
             "kernel_dtb",
             "recovery_dtbo",
             "dtb",
-            "magiskpolicy"
+            # "magiskpolicy",
+            "assets"
         ]
         print("- Clean Up ...")
         for i in  rmlist: delete(i)
@@ -353,6 +410,7 @@ class myApp(ttk.Frame):
                 self.MAGISKLIST = []  # Reset magisk list
 
                 if online:
+                    self.__tlog("联网获取Magisk版本...\n")
                     self.MAGISKDICT = mp.getReleaseList(MAGISKGITAPI)
                     for i in self.MAGISKDICT.keys():
                         self.MAGISKLIST.append(i.strip(".apk"))
@@ -477,6 +535,11 @@ class myApp(ttk.Frame):
             ttk.Separator(tab_else).pack(side='top', fill='x', padx=5, pady=5, expand='no')
             readButton = ttk.Button(tab_else, text="连接设备读取配置", command=self.readFromDevice)
             readButton.pack(side='top', padx=5, pady=5, fill='x', expand='no')
+
+            # Fix magisk environment
+            ttk.Separator(tab_else).pack(side='top', fill='x', padx=5, pady=5, expand='no')
+            fixEnvButton = ttk.Button(tab_else, text="修复Magisk运行环境", command=self.__fixEnv, style="warning")
+            fixEnvButton.pack(side='top', padx=5, pady=5, fill='x', expand='no')
 
             tab_config.pack(side='top')
             tab_patch.pack(side='top')

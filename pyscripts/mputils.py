@@ -1,5 +1,18 @@
-import time, sys
+import threading
+import time, sys, os
+import subprocess
 import requests
+
+def runcmd(cmd):
+    if os.name == 'posix':
+        creationflags = 0
+    elif os.name == 'nt':  # if on windows ,create a process with hidden console
+        creationflags = subprocess.CREATE_NO_WINDOW
+    else:
+        creationflags = 0
+    ret = subprocess.run(cmd, shell=False, stderr=None, stdout=subprocess.PIPE, creationflags=creationflags)
+    print(ret.stdout)
+    return ret.stdout.decode('utf-8')
 
 def retCurrentTime():
     return time.strftime('%H:%M:%S')
