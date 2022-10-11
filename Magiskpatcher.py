@@ -14,6 +14,7 @@ import shutil
 # If not have module ttkbootstrap then auto download
 try:
     import ttkbootstrap as ttk
+    from ttkbootstrap.scrolled import ScrolledText
 except:
     if os.name == 'nt':
         os.system("pip install ttkbootstrap")
@@ -98,9 +99,9 @@ class myApp(ttk.Frame):
         self.__setupWidgets()
 
     def __fillProgress(self):
-        while(self.FillProgress):
+        while(self.FillProgress and self.progress.get()<79):
             self.progress.set(self.progress.get()+1)
-            time.sleep(0.5)
+            time.sleep(0.05)
     
     def fillProgress(self):
         self.FillProgress = True
@@ -476,7 +477,7 @@ class myApp(ttk.Frame):
             tab_else = ttk.Frame(notebook)
 
             # Text
-            self.Text = ttk.ScrolledText(noteFrame, height=3, width=100)
+            self.Text = ScrolledText(noteFrame, height=3, width=100, autohide=True, bootstyle="round")
             self.Text.pack(side='right', expand='no', fill='both',padx=5, pady=5)
 
             # Tab config
