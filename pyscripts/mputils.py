@@ -10,9 +10,15 @@ def runcmd(cmd):
         creationflags = subprocess.CREATE_NO_WINDOW
     else:
         creationflags = 0
-    ret = subprocess.run(cmd, shell=False, stderr=None, stdout=subprocess.PIPE, creationflags=creationflags)
-    print(ret.stdout)
-    return ret.stdout.decode('utf-8')
+    ret = subprocess.run(cmd,
+                                   shell=False,
+                                   #stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.STDOUT,
+                                   creationflags=creationflags
+                                )
+    print(ret.stdout.decode('utf-8'))
+    return (ret.returncode, ret.stdout.decode('utf-8'))
 
 def retCurrentTime():
     return time.strftime('%H:%M:%S')

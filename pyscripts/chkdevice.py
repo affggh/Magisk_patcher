@@ -21,7 +21,13 @@ class chkdevice:
             creationflags = subprocess.CREATE_NO_WINDOW
         else:
             creationflags = 0
-        ret = subprocess.run(cmd, shell=False, creationflags=creationflags, stderr=None, stdout=subprocess.PIPE)
+        ret = subprocess.run(cmd,
+                                   shell=False,
+                                   #stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.STDOUT,
+                                   creationflags=creationflags
+                                )
         return [ret.returncode, ret.stdout.decode('utf-8').strip('\n').strip('\r')]
 
     def isAdbAlive(self):

@@ -11,6 +11,13 @@ import threading
 import zipfile
 import shutil
 
+if os.name == 'nt':
+    import ctypes
+    # Tell system using self dpi adapt
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+    # get screen resize scale factor
+    ScaleFactor = ctypes.windll.shcore.GetScaleFactorForDevice(0)
+
 # If not have module ttkbootstrap then auto download
 try:
     import ttkbootstrap as ttk
@@ -47,13 +54,14 @@ from pyscripts.chkdevice import chkdevice
 VERSION = 20221008
 AUTHOR = "affggh"
 
-LOCALDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
+LOCALDIR = os.path.abspath(os.path.dirname(__file__))
+RUNDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 
 MAGISKGIT = "https://github.com/topjohnwu/Magisk"
 MAGISKGITAPI = "https://api.github.com/repos/topjohnwu/Magisk/releases"
 MAGISKPATCHERGIT = "https://github.com/affggh/Magisk_patcher"
 
-os.chdir(LOCALDIR)
+os.chdir(RUNDIR)
 
 class myStdout():	# 重定向类
     def __init__(self, text):
@@ -96,6 +104,9 @@ class myApp(ttk.Frame):
         self.MAGISKLIST = []  # "magiskname"
         self.MAGISKDICT = {}  # "magiskname" : "download url"
         self.FillProgress = False
+        # Make dir to download magisk apk
+        if not os.path.isdir("prebuilt"):
+            os.mkdir("prebuilt")
         self.__setupWidgets()
 
     def __fillProgress(self):
@@ -158,16 +169,9 @@ class myApp(ttk.Frame):
     def __fixEnv(self):
         c = chkdevice()
         if os.name == 'nt':
-            c.setadb(LOCALDIR + os.sep + 
-                     "bin" + os.sep +
-                     self.ostype + os.sep +
-                     self.nativearch + os.sep +
-                     "adb")
-            c.setfastboot(LOCALDIR + os.sep + 
-                          "bin" + os.sep +
-                          self.ostype + os.sep +
-                          self.nativearch + os.sep +
-                          "fastboot")
+            c.setadb(os.path.join(
+                LOCALDIR, "bin", self.ostype, self.nativearch, "adb.exe"
+            ))
         state = c.chk_status()
         print(state)
         if not state == "device" or state == "recovery":
@@ -183,21 +187,32 @@ class myApp(ttk.Frame):
         for i in ["magisk32", "magisk64", "magiskinit", "magiskboot", "busybox"]:
             if os.access(i, os.F_OK):
                 shutil.move(i, os.path.join("assets", i))
-    
-        print("- Remove old $MAGISKBIN")
+
         if os.name == 'nt':
             adb = os.path.join(LOCALDIR, "bin", self.ostype, self.nativearch, "adb")
         else:
             adb = "adb"
 
-        mp.runcmd([adb, "shell", "rm", "-rf", "/data/adb/magisk"])
+        su = ''
+        print("- Detect root access")
+        if mp.runcmd([adb, 'shell', 'whoami'])[1] != 'root':
+            if mp.runcmd([adb, 'shell', 'su', '-v'])[0] != 0:
+                print("! Cannot get su command and root access...")
+                return
+            else:
+                print("- su command detect")
+                su = 'su -c'
+
+        print("- Remove old $MAGISKBIN")
+        mp.runcmd([adb, "shell", su, "rm", "-rf", "/data/adb/magisk"])
 
         print("- Push new files")
         mp.runcmd([adb, "push", "assets", "/data/local/tmp/assets"])
-        mp.runcmd([adb, "shell", "su", "-c", "mv", "/data/local/tmp/assets", "/data/adb/magisk"])
-        print("- Chmod files")
-        mp.runcmd([adb, "shell", "su", "-c", "chmod", "-R", "0755", "/data/adb/magisk/*"])
-        mp.runcmd([adb, "shell", "su", "-c", "chown", "-R", "0:0", "/data/adb/magisk"])
+        mp.runcmd([adb, "shell", su, "mv", "/data/local/tmp/assets", "/data/adb/magisk"])
+        print("- Chmod&Chown files")
+        mp.runcmd([adb, "shell", su, "chmod", "-R", "0755", "/data/adb/magisk/*"])
+        mp.runcmd([adb, "shell", su, "chown", "-R", "0:0", "/data/adb/magisk"])
+        print("- Done")
 
         self.cleanup()
 
@@ -209,16 +224,9 @@ class myApp(ttk.Frame):
             return var.split("=")[0], var.split("=")[1]
         c = chkdevice()
         if os.name == 'nt':
-            c.setadb(LOCALDIR + os.sep + 
-                     "bin" + os.sep +
-                     self.ostype + os.sep +
-                     self.nativearch + os.sep +
-                     "adb")
-            c.setfastboot(LOCALDIR + os.sep + 
-                          "bin" + os.sep +
-                          self.ostype + os.sep +
-                          self.nativearch + os.sep +
-                          "fastboot")
+            c.setadb(os.path.join(
+                LOCALDIR, "bin", self.ostype, self.nativearch, "adb.exe"
+            ))
         state = c.chk_status()
         print("读取的设备状态为[%s]" %state)
         if not state == "device" or state == "recovery":
@@ -226,13 +234,17 @@ class myApp(ttk.Frame):
             return False
         if state == "device": tmp = "/data/local/tmp"
         else: tmp = "/tmp"
+        configsh = os.path.join(LOCALDIR, "bin", "get_config.sh")
         cmds = [
-            [c.adb, "push", "bin" + os.sep + "get_config.sh", tmp + "/" + "get_config.sh"],
+            [c.adb, "push", configsh, tmp + "/" + "get_config.sh"],
             [c.adb, "shell", "chmod", "a+x", tmp + "/" + "get_config.sh"],
             [c.adb, "shell", "sh", tmp + "/" + "get_config.sh"]
         ]
         for cmd in cmds:
-            ret = mp.runcmd(cmd)
+            retcode, ret = mp.runcmd(cmd)
+            if retcode != 0:
+                print("命令运行出错 :")
+                print(cmd)
         print("读取出的配置为")
         for i in ret.splitlines():
             var, val = eq(i)
@@ -249,7 +261,7 @@ class myApp(ttk.Frame):
         th.run()
 
     def __parseApk(self):
-        filename = LOCALDIR + os.sep + "prebuilt" + os.sep + self.magisk + ".apk"
+        filename = RUNDIR + os.sep + "prebuilt" + os.sep + self.magisk + ".apk"
         def returnMagiskVersion(buf):
             v = "Unknow"
             l = buf.decode('utf_8').split("\n")
@@ -318,8 +330,8 @@ class myApp(ttk.Frame):
         if self.magisk == None:
             self.__tlog("未选择magisk修补版本\n")
             return False
-        if os.access(LOCALDIR + os.sep + "new-boot.img", os.F_OK):  # Delete exist patched image before patch
-            os.remove(LOCALDIR + os.sep + "new-boot.img")
+        if os.access(RUNDIR + os.sep + "new-boot.img", os.F_OK):  # Delete exist patched image before patch
+            os.remove(RUNDIR + os.sep + "new-boot.img")
         if not self.__parseApk():
             self.__tlog("Error : Cannot parse apk file...\n")
             return False
@@ -403,7 +415,7 @@ class myApp(ttk.Frame):
             def getMagiskList(online=False):
                 def getCurrent():
                     l = []
-                    for root, dir, name in os.walk(LOCALDIR + os.sep + "prebuilt"):
+                    for root, dir, name in os.walk(RUNDIR + os.sep + "prebuilt"):
                         for i in name:
                             if i.endswith(".apk"):
                                 l.append(i.strip(".apk"))
@@ -442,7 +454,7 @@ class myApp(ttk.Frame):
                     self.magisk = magiskMenu.set(magiskMenu.focus())['magisk']
                 except:
                     self.magisk = None
-                if not exist(LOCALDIR+os.sep+"prebuilt"+os.sep+self.magisk+".apk"):
+                if not exist(RUNDIR+os.sep+"prebuilt"+os.sep+self.magisk+".apk"):
                     self.__tlog("选中文件不存在，尝试从网络下载...\n")
                     if self.gitmirror.get() != "":
                         url = self.MAGISKDICT[self.magisk+".apk"].replace("https://github.com", self.gitmirror.get())
@@ -568,8 +580,8 @@ class myApp(ttk.Frame):
             # progress Bar
             progressFrame = ttk.LabelFrame(bottomFrame, text='进度条', labelanchor='w')
             self.progressbar = ttk.Progressbar(progressFrame, variable=self.progress, mode='determinate', bootstyle="info")
-            self.progressbar.pack(side='left', expand='yes', fill='x', padx=20)
-            precent = ttk.Label(progressFrame, textvariable=self.progress, width=5, anchor='e')
+            self.progressbar.pack(side='left', expand='yes', fill='x', padx=(15,0), anchor='e')
+            precent = ttk.Label(progressFrame, textvariable=self.progress, width=3, anchor='e')
             precent.pack(side='left')
             ttk.Label(progressFrame, text="%").pack(side='left', padx=(0,5))
             progressFrame.pack(side='left', expand='yes', fill='x', padx=10, ipadx=5)
@@ -593,14 +605,16 @@ if __name__ == '__main__':
 ''' %(AUTHOR, VERSION)
         win = ttk.Toplevel(root)
         win.title("关于")
-        win.geometry("360x280")
+        # win.geometry("360x280")
+        if os.name == 'nt':
+            win.tk.call('tk', 'scaling', ScaleFactor/75)
         win.update()
         win.minsize(win.winfo_width(), win.winfo_height())
         x_cordinate = int((win.winfo_screenwidth() / 2) - (win.winfo_width() / 2))
         y_cordinate = int((win.winfo_screenheight() / 2) - (win.winfo_height() / 2))
         win.geometry("+{}+{}".format(x_cordinate, y_cordinate))
         logofont = tkfont.Font(family="Gabriola", size=50, weight=tkfont.BOLD)
-        logo = ttk.Label(win, text='Magisk Patcher', font=logofont, width=360, anchor="center")
+        logo = ttk.Label(win, text='Magisk Patcher', font=logofont, anchor="center")
         label = ttk.Label(win, image=LOGOIMG)
         button_about = ttk.Button(win, text="浏览项目地址", command=lambda:webbrowser.open(MAGISKPATCHERGIT))
         button_about.pack(side='bottom', anchor='e', expand='no', padx=10)
@@ -621,6 +635,10 @@ if __name__ == '__main__':
         title="Magisk Patcher"
         # size=(WIDTH, HEIGHT),
     )
+
+    # Fix high dpi issue
+    if os.name == 'nt':
+        root.tk.call('tk', 'scaling', ScaleFactor/75)
 
     # Setup images
     LOGOIMG = ttk.PhotoImage(file=LOCALDIR + os.sep + "bin" + os.sep + "logo.png")

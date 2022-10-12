@@ -19,8 +19,6 @@ class Patch:
         # self.EXERETURNCODE = 0
         if os.name == 'nt':
             self.creationflags = subprocess.CREATE_NO_WINDOW
-        elif os.name == 'posix':
-            self.creationflags = 0
         else:
             self.creationflags = 0
         self.env = {
