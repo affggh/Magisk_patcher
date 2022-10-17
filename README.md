@@ -1,5 +1,5 @@
 # 欢迎
-**中文**｜[English](README_EN.txt)
+**中文**｜[English](README_EN.md)
 
 欢迎使用Magisk Patcher，这是一个基于Python第三方库ttkbootstrap开发的一款能在Windows和Linux上运行的boot修补程序。
 
