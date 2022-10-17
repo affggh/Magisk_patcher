@@ -1,14 +1,19 @@
 # 欢迎
+**中文**｜[English](https://../README_EN.txt)
 
-欢迎使用Magisk Patcher，这是一个可以在电脑上使用Magisk修补任意架构boot镜像的小工具。
+欢迎使用Magisk Patcher，这是一个基于Python第三方库ttkbootstrap开发的一款能在Windows和Linux上运行的boot修补程序。
 
-# 功能
+ ~~这是affggh为了暴力圈钱写的一款垃圾小工具。虽然钱没圈到多少，不过affggh还是坚持更新了半年。magiskboot从官方源码移植，多次测试十分甚至九分的稳定。~~
+ 
+![GUI Screenshot](bin/gui.png)
 
-    TODO(优势)
+## 优势
 
-    TODO(主要功能截图)
-
-    TODO(必要的文字描述)
++ 从magisk官方源码移植，多次测试，稳定性有保障
++ 在多个设备上测试，支持Android 4.3 - 13
++ 在线获取Magisk列表，点击即可下载
++ 可以通过usb调试获取设备修补相关
++ 修复magisk运行环境（待测试）
 
 ## 支持系统
 
@@ -63,16 +68,13 @@ sudo pacman -S python-pillow
 
 **⚠️注意：Batch脚本已被移除，如果你想要使用请下载1.0版本**
 
-# GUI screen shortcut
-![](bin/gui.png)
-
-# GUI THEME
+# GUI主题
 GUI ttk THEME from [ttkbootstrap](https://ttkbootstrap.readthedocs.io/)  
 
 # 感谢
 
-    [thka2016](https://github.com/thka2016) 帮我写了个很好用的功能    
-	[Magisk](https://github.com/topjohnwu/Magisk) 源码来自magisk    
+[thka2016](https://github.com/thka2016) 帮我写了个很好用的功能    
+[Magisk](https://github.com/topjohnwu/Magisk) 源码来自magisk    
 
 # 捐赠
 
