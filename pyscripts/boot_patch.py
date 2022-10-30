@@ -110,17 +110,18 @@ class Patch:
         
         # check ramdisk status
         sys.stdout.write("- Checking ramdisk status\n")
-        retcode = self.execv([self.magiskboot, "cpio", "ramdisk.cpio", "test"])
+        if not os.access("ramdisk.cpio", os.F_OK):
+            retcode = 0    # Stock A only legacy SAR, or some Android 13 GKIs
+        else:
+            retcode = self.execv([self.magiskboot, "cpio", "ramdisk.cpio", "test"])
         SHA1 = ""
-        if retcode == -1:
-            sys.stderr.write("- Error run command Falied !")
-            return False
-        elif retcode == 0:
+        status = retcode
+        if (status & 3) == 0:
             sys.stdout.write("- Stock boot image detected\n")
             SHA1 = self.exegetout([self.magiskboot, "sha1", "%s" %infile])
             shutil.copyfile(infile, "stock-boot.img")
             shutil.copyfile("ramdisk.cpio", "ramdisk.cpio.orig")
-        elif retcode == 1:
+        elif (status & 3) == 1:
             sys.stdout.write("- Magisk patched boot image detected\n")
             if os.getenv("SHA1") == "":
                 SHA1 = self.exegetout([self.magiskboot, "cpio", "ramdisk.cpio", "sha1"])
@@ -128,14 +129,14 @@ class Patch:
             shutil.copyfile("ramdisk.cpio", "ramdisk.cpio.orig")
             if os.path.isfile("stock-boot.img"):
                 os.remove("stock-boot.img")
-        elif retcode == 2:
+        elif (status & 3) == 2:
             sys.stderr.write("! Boot image patched by unsupported programs\n",
                              "! Please restore back to stock boot image\n")
             return False
         
         # Work around custom legacy Sony /init -> /(s)bin/init_sony : /init.real setup
         INIT = "init"
-        if not retcode&4 == 0:
+        if not status&4 == 0:
             INIT = "init.real"
         
         # Ramdisk Patches
