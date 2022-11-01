@@ -51,7 +51,7 @@ import pyscripts.archdetect as archdetect
 from pyscripts.boot_patch import Patch
 from pyscripts.chkdevice import chkdevice
 
-VERSION = 20221008
+VERSION = 20221101
 AUTHOR = "affggh"
 
 LOCALDIR = os.path.abspath(os.path.dirname(__file__))
