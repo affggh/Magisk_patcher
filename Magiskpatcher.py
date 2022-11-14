@@ -277,7 +277,12 @@ class myApp(ttk.Frame):
         if not os.access(filename, os.F_OK):
             return False
         else:
-            f = zipfile.ZipFile(filename, 'r')
+            try:
+                f = zipfile.ZipFile(filename, 'r')
+            except:
+                print("apk文件打开错误，不能识别为zip压缩包\n"
+                      "请删除[%s]后更换镜像源重新下载" %filename)
+                return
             l = f.namelist() # l equals list
             tl = []  # tl equals total get list
             for i in l:
