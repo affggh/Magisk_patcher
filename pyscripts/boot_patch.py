@@ -120,7 +120,6 @@ class Patch:
             sys.stdout.write("- Stock boot image detected\n")
             SHA1 = self.exegetout([self.magiskboot, "sha1", "%s" %infile])
             shutil.copyfile(infile, "stock-boot.img")
-            shutil.copyfile("ramdisk.cpio", "ramdisk.cpio.orig")
         elif (status & 3) == 1:
             sys.stdout.write("- Magisk patched boot image detected\n")
             if os.getenv("SHA1") == "":
@@ -174,7 +173,10 @@ class Patch:
         if not skip64: cmd.insert(7, "add 0644 overlay.d/sbin/magisk64.xz magisk64.xz")
 
         retcode = self.execv(cmd)
-        os.remove("ramdisk.cpio.orig")
+        try:
+            os.remove("ramdisk.cpio.orig")
+        except:
+            pass
         os.remove("config")
         if os.path.isfile("magisk32.xz"): os.remove("magisk32.xz")
         if os.path.isfile("magisk64.xz"): os.remove("magisk64.xz")
