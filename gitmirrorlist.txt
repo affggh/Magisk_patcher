@@ -1,4 +1,3 @@
 https://github.com
-https://download.fastgit.org
 https://kgithub.com
 https://cdn.jsdelivr.net
