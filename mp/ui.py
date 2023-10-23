@@ -26,7 +26,7 @@ else:
 VERSION = "4.0.0"
 AUTHOR = "affggh"
 TITLE = "Magisk Patcher v%s by %s" % (VERSION, AUTHOR)
-WIDTH = 880
+WIDTH = 900
 HEIGHT = 420
 OS, ARCH = utils.retTypeAndMachine()
 LICENSE = "GPLv3"
@@ -349,6 +349,10 @@ class MagiskPatcherUI(ctk.CTk):
         loglevel_slide_bar.grid(column=2, row=0, padx=5, pady=5)
         loglevel_slide_bar.set(logging.WARN) # Default loglevel
         ctk.CTkLabel(other_button_frame, textvariable=self.loglevel).grid(column=3, row=0, padx=5, pady=5)
+
+        ctk.CTkLabel(other_button_frame, text="缩放:").grid(column=4, row=0, padx=(5,0), pady=5)
+        scaling_bar = ctk.CTkOptionMenu(other_button_frame, values=["0.75", "0.8", "1.0", "1.25", "1.5", "2"], command=self.ui_scaling_event)
+        scaling_bar.grid(column=5, row=0, padx=5, pady=5)
         other_button_frame.pack(side='top', padx=5, pady=5, fill='x', expand='no')
 
         other_frame.pack(side='top', padx=5, pady=5, fill='both', expand='yes')
@@ -520,6 +524,10 @@ class MagiskPatcherUI(ctk.CTk):
 
     def change_frame_other(self):
         self._change_frame_byname("other")
+
+    def ui_scaling_event(self, value):
+        ctk.set_widget_scaling(float(value))
+        ctk.set_window_scaling(float(value))
 
 def centerWindow(parent: ctk.CTk):
     width, height = parent.winfo_screenwidth(), parent.winfo_screenheight()
