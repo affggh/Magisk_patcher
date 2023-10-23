@@ -1,3 +1,3 @@
 @chcp 65001
-@python mp
+@python magiskpatcher.py
 @pause
