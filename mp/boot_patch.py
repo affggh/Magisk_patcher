@@ -178,9 +178,9 @@ class BootPatcher(object):
             self.__execv(["compress=xz", "stub.apk", "stub.xz"])
         with open("config", 'w') as config:
             config.write(
-                f"KEEPVERITY={self.env["KEEPVERITY"]}" + "\n" +
-                f"KEEPFORCEENCRYPT={self.env["KEEPFORCEENCRYPT"]}" + "\n" +
-                f"RECOVERYMODE={self.env["RECOVERYMODE"]}" + "\n")
+                f"KEEPVERITY={self.env['KEEPVERITY']}" + "\n" +
+                f"KEEPFORCEENCRYPT={self.env['KEEPFORCEENCRYPT']}" + "\n" +
+                f"RECOVERYMODE={self.env['RECOVERYMODE']}" + "\n")
             if sha != "":
                 config.write(f"SHA1={sha}\n")
         

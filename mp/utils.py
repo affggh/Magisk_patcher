@@ -166,7 +166,7 @@ def parseMagiskApk(apk: str, arch:["arm64", "arm", "x86", "x86_64"]="arm64", log
             if "stub.apk" in l.filename:
                 saveto(z.read(l), "stub.apk")
             # Save a platform magiskboot into bin if linux
-            if os == "windows":
+            if os!='windows' and osname !='nt':
                 if f"lib/{pp}/libmagiskboot.so" in l.filename:
                     saveto(z.read(l), "bin/magiskboot")
 
