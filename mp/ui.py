@@ -87,6 +87,7 @@ class MagiskPatcherUI(ctk.CTk):
         self.isjsdelivr = ctk.BooleanVar(value=True)
 
         self.uselocal = ctk.BooleanVar(value=True)
+        self.usedeltamagisk = ctk.BooleanVar(value=False)
 
         # magisk list
         self.magisk_list = []
@@ -311,8 +312,14 @@ class MagiskPatcherUI(ctk.CTk):
         downlaod_jsdelivr = ctk.CTkSwitch(download_config_frame, text="使用jsdelivr加速下载", variable=self.isjsdelivr)
         downlaod_jsdelivr.pack(side='top', padx=10, pady=5, fill='x')
 
-        download_use_local_checkbox = ctk.CTkSwitch(download_config_frame, text="使用本地文件修补", variable=self.uselocal)
-        download_use_local_checkbox.pack(side='top', padx=10, pady=5, fill='x')
+        download_config_local_frame = ctk.CTkFrame(download_config_frame)
+        download_use_local_checkbox = ctk.CTkSwitch(download_config_local_frame, text="使用本地文件修补", variable=self.uselocal)
+        download_use_local_checkbox.bind("<Button-1>", self.update_local_widgets)
+        download_use_local_checkbox.pack(side='top', padx=5, pady=5, fill='x')
+
+        # delta switch
+        self.download_delta_magisk = ctk.CTkSwitch(download_config_local_frame, text="使用delta magisk通道", variable=self.usedeltamagisk)
+        download_config_local_frame.pack(side='top', fill='x', padx=5, pady=5)
 
         download_refresh_button = ctk.CTkButton(download_config_frame, text="刷新列表", command=self.refresh_magisk)
         download_refresh_button.pack(side='bottom', fill='x', padx=10, pady=5)
@@ -378,7 +385,11 @@ class MagiskPatcherUI(ctk.CTk):
             if not self.uselocal.get():
                 if not op.isfile(op.join("prebuilt", magisk)):
                     print(f"- 文件不存在， 准备下载... [{magisk}]", file=self)
-                    url = magisk_list[magisk]
+                    if not self.isjsdelivr.get() and self.ismirror.get():
+                        print("- 使用镜像网站下载...", file=self)
+                        url = magisk_list[magisk].replace(self.mirror.get().rstrip('/'), "https://github.com")
+                    else:
+                        url = magisk_list[magisk]
                     utils.thdownloadFile(url, 
                                          op.join("prebuilt", magisk), 
                                          self.isproxy.get(), 
@@ -425,7 +436,8 @@ class MagiskPatcherUI(ctk.CTk):
                 )
     
         else:
-            magisk_list = utils.getReleaseList(isproxy=self.isproxy.get(),
+            magisk_list = utils.getReleaseList(url=utils.DEFAULT_MAGISK_API_URL if not self.usedeltamagisk.get() else utils.DELTA_MAGISK_API_URL,
+                                               isproxy=self.isproxy.get(),
                                                proxyaddr=self.proxy.get(),
                                                isjsdelivr=self.isjsdelivr.get(),
                                                log=self.log)
@@ -455,6 +467,12 @@ class MagiskPatcherUI(ctk.CTk):
 
     def set_log_level(self, value):
         self.log.setLevel(int(value))
+
+    def update_local_widgets(self, event):
+        if not self.uselocal.get():
+            self.download_delta_magisk.pack(side='top', fill='x', anchor='w', padx=5, pady=5)
+        else:
+            self.download_delta_magisk.pack_forget()
 
     def update_proxy_widgets(self, event):
         if self.isproxy.get():

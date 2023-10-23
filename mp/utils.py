@@ -6,9 +6,8 @@ import zipfile
 from multiprocessing.dummy import DummyProcess
 import platform
 
-from .boot_patch import rm
-
 DEFAULT_MAGISK_API_URL = "https://api.github.com/repos/topjohnwu/Magisk/releases"
+DELTA_MAGISK_API_URL = "https://api.github.com/repos/HuskyDG/magisk-files/releases"
 
 def retTypeAndMachine():
     # Detect machine and ostype
@@ -42,35 +41,50 @@ def runcmd(cmd):
                                 )
     return (ret.returncode, ret.stdout.decode('utf-8'))
 
-def getReleaseList(url: str = DEFAULT_MAGISK_API_URL, isproxy: bool=False, proxyaddr: str="127.0.0.1:7890", isjsdelivr:bool=False, log=stderr):
+def getReleaseList(url: str = DEFAULT_MAGISK_API_URL, isproxy: bool=False, proxyaddr: str="127.0.0.1:7890", isjsdelivr:bool=True, log=stderr):
+    buf = url.split('/')
+    user = buf[-3]
+    repo = buf[-2]
+
     proxies = {
         'http': f"{proxyaddr}",
         'https': f"{proxyaddr}",
     }
     r = requests.get(url,
-                     proxies=proxies if isproxy else None)
+                     proxies=proxies if isproxy else None,
+                     timeout=3)
     if not r.ok:
         print("获取版本失败，请检查网络或尝试添加代理...", file=log)
         return {}
     data = r.json()
     dlink = {}
-    for i in data:
-        for j in i['assets']:
-            if j['name'].startswith("Magisk") and j['name'].endswith(r".apk"):
-                if "Manager" in j['name']: continue # skip magisk manager apk
-                if isjsdelivr:
-                    dlink.update({j['name'] : magiskVresion2jsdelivr(j['name'])})
-                else:
-                    dlink.update({j['name'] : j['browser_download_url']})
-                
+
+    if url == DEFAULT_MAGISK_API_URL:
+        for i in data:
+            tag_name = i['tag_name']
+            for j in i['assets']:
+                if j['name'].startswith("Magisk") and j['name'].endswith(r".apk"):
+                    if "Manager" in j['name']: continue # skip magisk manager apk
+                    if isjsdelivr:
+                        dlink.update({j['name'] : magiskTag2jsdelivr(user, repo, tag_name, j['name'])})
+                    else:
+                        dlink.update({j['name'] : j['browser_download_url']})
+    else: # maybe delta magisk
+        for i in data:
+            tag_name = i['tag_name']
+            for j in i['assets']:
+                if j['name'].endswith(r".apk") and j['name'].startswith('app'):
+                    if isjsdelivr:
+                        dlink.update({tag_name + j['name'].lstrip('app') : magiskTag2jsdelivr(user, repo, tag_name, j['name'])})
+                    else:
+                        dlink.update({tag_name + j['name'].lstrip('app') : j['browser_download_url']})
     return dlink
 
-def magiskVresion2jsdelivr(ver: str):
+def magiskTag2jsdelivr(user, repo, tag, fname):
     '''
-    input Magisk-v22.5 return jsdelivr download link
+    input link and tag get jsdilivr link
     '''
-    ver = ver.lstrip("Magisk").rstrip(r".apk").lstrip(r"-").lstrip(r".")
-    return "https://cdn.jsdelivr.net/gh/topjohnwu/magisk-files@%s/app-release.apk" %ver
+    return f"https://cdn.jsdelivr.net/gh/{user}/{repo}@{tag}/{fname}"
 
 def getMagiskApkVersion(fname: str) -> str | None:
     '''
@@ -176,4 +190,4 @@ def parseMagiskApk(apk: str, arch:["arm64", "arm", "x86", "x86_64"]="arm64", log
                 saveto(z.read(f"lib/{arch}/libmagiskinit.so"), "magiskinit")
 
 if __name__ == '__main__':
-    parseMagiskApk("prebuilt/Magisk.v26.3.apk")
+    print(getReleaseList(url=DELTA_MAGISK_API_URL))
