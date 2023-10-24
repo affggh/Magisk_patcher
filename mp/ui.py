@@ -352,6 +352,7 @@ class MagiskPatcherUI(ctk.CTk):
 
         ctk.CTkLabel(other_button_frame, text="缩放:").grid(column=4, row=0, padx=(5,0), pady=5)
         scaling_bar = ctk.CTkOptionMenu(other_button_frame, values=["0.75", "0.8", "1.0", "1.25", "1.5", "2"], command=self.ui_scaling_event)
+        scaling_bar.set("1.0")
         scaling_bar.grid(column=5, row=0, padx=5, pady=5)
         other_button_frame.pack(side='top', padx=5, pady=5, fill='x', expand='no')
 
