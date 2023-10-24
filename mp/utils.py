@@ -5,6 +5,7 @@ import requests
 import zipfile
 from multiprocessing.dummy import DummyProcess
 import platform
+from os import chmod
 
 DEFAULT_MAGISK_API_URL = "https://api.github.com/repos/topjohnwu/Magisk/releases"
 DELTA_MAGISK_API_URL = "https://api.github.com/repos/HuskyDG/magisk-files/releases"
@@ -183,6 +184,7 @@ def parseMagiskApk(apk: str, arch:["arm64", "arm", "x86", "x86_64"]="arm64", log
             if os!='windows' and osname !='nt':
                 if f"lib/{pp}/libmagiskboot.so" in l.filename:
                     saveto(z.read(l), "bin/magiskboot")
+                    chmod("bin/magiskboot", 0o755)
 
             if f"lib/{arch}/libmagisk64.so" in l.filename:
                 saveto(z.read(f"lib/{archto32(arch)}/libmagisk32.so"), "magisk32")
