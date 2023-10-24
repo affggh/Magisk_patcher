@@ -1,3 +1,4 @@
 customtkinter
 pillow
 requests
+packaging
