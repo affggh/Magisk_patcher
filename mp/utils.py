@@ -85,7 +85,7 @@ def magiskTag2jsdelivr(user, repo, tag, fname):
     '''
     input link and tag get jsdilivr link
     '''
-    return f"https://cdn.jsdelivr.net/gh/{user}/{repo}@{tag.lstrip("v")}/{fname}"
+    return f"https://cdn.jsdelivr.net/gh/{user}/{repo}@{tag.lstrip('v')}/{fname}"
 
 def getMagiskApkVersion(fname: str) -> str | None:
     '''
