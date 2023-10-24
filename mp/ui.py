@@ -388,6 +388,9 @@ class MagiskPatcherUI(ctk.CTk):
     def refresh_magisk(self):
         def download(magisk: str):
             if not self.uselocal.get():
+                if not op.isdir(op.join("prebuilt")):
+                    makedirs("prebuilt", exist_ok=True)
+
                 if not op.isfile(op.join("prebuilt", magisk)):
                     print(f"- 文件不存在， 准备下载... [{magisk}]", file=self)
                     if not self.isjsdelivr.get() and self.ismirror.get():
