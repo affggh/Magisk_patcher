@@ -188,9 +188,10 @@ def parseMagiskApk(apk: str, arch:["arm64", "arm", "x86", "x86_64"]="arm64", log
                     saveto(z.read(l), "bin/magiskboot")
                     chmod("bin/magiskboot", 0o755)
 
-            if f"lib/{arch}/libmagisk64.so" in l.filename:
+            if f"lib/{arch}/libmagiskinit.so" in l.filename:
                 saveto(z.read(f"lib/{archto32(arch)}/libmagisk32.so"), "magisk32")
-                saveto(z.read(l), "magisk64")
+                if arch in ["arm64-v8a", "x86_64"]:
+                    saveto(z.read(f"lib/{arch}/libmagisk64.so"), "magisk64")
                 saveto(z.read(f"lib/{arch}/libmagiskinit.so"), "magiskinit")
 
 if __name__ == '__main__':
