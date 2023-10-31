@@ -26,7 +26,7 @@ if osname == 'nt':
 else:
     EXT = ""
 
-VERSION = "4.0.1"
+VERSION = "4.1.0"
 AUTHOR = "affggh"
 TITLE = "Magisk Patcher v%s by %s" % (VERSION, AUTHOR)
 WIDTH = 900
