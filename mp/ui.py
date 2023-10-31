@@ -561,6 +561,9 @@ class MagiskPatcherUI(ctk.CTk):
         Language.select = self.lang.get()
         self.lang_dict = getattr(Language, self.lang.get())
         self.magisk_select.set(self.langget('magisk is not select'))
+        for i in self.magisk_list:
+            i.destory()
+        self.magisk_list = []
         self.__setup_widgets()
 
 def centerWindow(parent: ctk.CTk):
