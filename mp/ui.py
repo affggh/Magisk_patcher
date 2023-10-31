@@ -15,6 +15,9 @@ from multiprocessing.dummy import DummyProcess
 from . import utils
 from . import boot_patch
 
+# multi lang support
+from .lang import Language
+
 if osname == 'nt':
     import ctypes
 
@@ -62,10 +65,13 @@ class MagiskPatcherUI(ctk.CTk):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
+        self.lang = ctk.StringVar(value=Language.supports[0])
+        self.lang_dict = getattr(Language, self.lang.get())
+
         self.logo = ctk.CTkImage(Image.open(BytesIO(logodata), "r"), size=(240, 100))
         self.bootimg = ctk.StringVar()
         self.arch = ctk.StringVar()
-        self.magisk_select = ctk.StringVar(value="当前未选择magisk安装包")
+        self.magisk_select = ctk.StringVar(value=self.langget('magisk is not select'))
         self.magisk_select_int = ctk.StringVar()
 
         self.keep_verity = ctk.BooleanVar(value=True)
@@ -119,8 +125,8 @@ class MagiskPatcherUI(ctk.CTk):
                 print("\tFix this to patch boot image on windows correctly.", file=self)
                 print(f"{prebuilt_magiskboot}")
         elif osname == 'posix':
-            print(f"- Linux use magisk.apk inner magiskboot insted prebuilt magiskboot.")
-            print(f"\t It will extract when patching a boot image.")
+            print(f"- Linux use magisk.apk inner magiskboot insted prebuilt magiskboot.", file=self)
+            print(f"\t It will extract when patching a boot image.", file=self)
         
     # as stdout, you can print(..., file=self)
     def write(self, *args):
@@ -129,6 +135,11 @@ class MagiskPatcherUI(ctk.CTk):
 
     def flush(self): # void flush function
         pass
+
+    def langget(self, key: str) -> str:
+        if self.lang_dict.get(key):
+            return self.lang_dict.get(key)
+        else: return key
 
     def __setup_widgets(self):
         self.navigation_frame = ctk.CTkFrame(self, corner_radius=0)
@@ -141,7 +152,7 @@ class MagiskPatcherUI(ctk.CTk):
         self.patcher_frame_button = ctk.CTkButton(
             self.navigation_frame,
             height=30,
-            text="主页",
+            text=self.langget('Home'),
             fg_color="transparent",
             text_color=("gray10", "gray90"),
             hover_color=("gray70", "gray30"),
@@ -155,7 +166,7 @@ class MagiskPatcherUI(ctk.CTk):
         self.download_frame_button = ctk.CTkButton(
             self.navigation_frame,
             height=30,
-            text="选择与下载",
+            text=self.langget('Select and Download'),
             fg_color="transparent",
             text_color=("gray10", "gray90"),
             hover_color=("gray70", "gray30"),
@@ -169,7 +180,7 @@ class MagiskPatcherUI(ctk.CTk):
         self.other_frame_button = ctk.CTkButton(
             self.navigation_frame,
             height=30,
-            text="其他",
+            text=self.langget('Other'),
             fg_color="transparent",
             text_color=("gray10", "gray90"),
             hover_color=("gray70", "gray30"),
@@ -189,7 +200,17 @@ class MagiskPatcherUI(ctk.CTk):
         )
         self.theme_select_button.set("system")
         self.theme_select_button.pack(side="bottom", fill="x")
-        base_on_label = ctk.CTkLabel(self.navigation_frame, text='此界面基于[CustomTkinter]库', text_color=('blue', 'light blue'), font=ctk.CTkFont(underline=True), anchor='w')
+
+        lang_frame = ctk.CTkFrame(self.navigation_frame, corner_radius=0)
+        lang_label = ctk.CTkLabel(lang_frame, text="🌏", font=ctk.CTkFont(size=25), anchor='center', compound='center')
+        lang_combo = ctk.CTkComboBox(lang_frame, corner_radius=0, values=Language.supports, variable=self.lang)
+        lang_button = ctk.CTkButton(lang_frame, text="Confirm", command=self.refresh_widgets, width=80)
+        lang_label.pack(side='left')
+        lang_combo.pack(side='left', fill='x', expand='yes', padx=5)
+        lang_button.pack(side='left')
+        lang_frame.pack(side='bottom', pady=5, fill='x')
+
+        base_on_label = ctk.CTkLabel(self.navigation_frame, text=self.langget('Based on CustomTkinter'), text_color=('blue', 'light blue'), font=ctk.CTkFont(underline=True), anchor='w')
         base_on_label.pack(side="bottom", fill="x", padx=5, pady=5)
         base_on_label.bind("<Button-1>", visit_customtkinter_website)
 
@@ -202,10 +223,10 @@ class MagiskPatcherUI(ctk.CTk):
         self.other_frame = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
 
         file_select_frame = ctk.CTkFrame(self.patcher_frame, corner_radius=5)
-        file_select_label = ctk.CTkLabel(file_select_frame, text="boot镜像")
+        file_select_label = ctk.CTkLabel(file_select_frame, text=self.langget('boot img'))
         file_select_entry = ctk.CTkEntry(file_select_frame, textvariable=self.bootimg)
         file_select_button = ctk.CTkButton(
-            file_select_frame, text="选择文件", command=self.file_choose_dialog
+            file_select_frame, text=self.langget('choose file'), command=self.file_choose_dialog
         )
         file_select_label.pack(side="left", padx=5, pady=5)
 
@@ -215,7 +236,7 @@ class MagiskPatcherUI(ctk.CTk):
 
         config_frame = ctk.CTkFrame(self.patcher_frame, corner_radius=5)
 
-        arch_select_label = ctk.CTkLabel(config_frame, text="架构:\t")
+        arch_select_label = ctk.CTkLabel(config_frame, text=self.langget('arch')+'\t')
         arch_select_button = ctk.CTkSegmentedButton(
             config_frame,
             values=["arm64", "arm", "x86_64", "x86"],
@@ -228,19 +249,19 @@ class MagiskPatcherUI(ctk.CTk):
         )
         arch_select_button.set("arm64")
 
-        keep_verify_check = ctk.CTkSwitch(config_frame, text="保持验证", variable=self.keep_verity)
+        keep_verify_check = ctk.CTkSwitch(config_frame, text=self.langget('keep verity'), variable=self.keep_verity)
         keep_verify_check.grid(column=1, row=1, padx=5, pady=5)
 
-        keep_forceencrypt_check = ctk.CTkSwitch(config_frame, text="保持强制加密", variable=self.keep_forceencrypt)
+        keep_forceencrypt_check = ctk.CTkSwitch(config_frame, text=self.langget('keep encypt'), variable=self.keep_forceencrypt)
         keep_forceencrypt_check.grid(column=2, row=1, padx=5, pady=5)
 
-        patch_vbmeta_flag = ctk.CTkSwitch(config_frame, text="修补vbmeta标志", variable=self.patchvbmeta_flag)
+        patch_vbmeta_flag = ctk.CTkSwitch(config_frame, text=self.langget('patch vbmeta flag'), variable=self.patchvbmeta_flag)
         patch_vbmeta_flag.grid(column=3, row=1, padx=5, pady=5)
 
-        recovery_flag = ctk.CTkSwitch(config_frame, text="recovery修补", variable=self.recoverymode)
+        recovery_flag = ctk.CTkSwitch(config_frame, text=self.langget('recovery'), variable=self.recoverymode)
         recovery_flag.grid(column=4, row=1, padx=5, pady=5)
 
-        legacy_sar_flag = ctk.CTkSwitch(config_frame, text="传统SAR设备 (如果你的设备是system-as-root但不是动态分区可能需要勾选此项)", variable=self.legacysar)
+        legacy_sar_flag = ctk.CTkSwitch(config_frame, text=self.langget('legacy sar'), variable=self.legacysar)
         legacy_sar_flag.grid(column=1, row=2, sticky='nsew', padx=5, pady=5, columnspan=4)
 
         config_frame.pack(side="top", fill="x", expand="no", padx=5, pady=5)
@@ -249,14 +270,14 @@ class MagiskPatcherUI(ctk.CTk):
         confirm_info = ctk.CTkLabel(confirm_frame, textvariable=self.magisk_select)
         confirm_info.pack(side="left", padx=5, pady=5, fill="x")
         confirm_button = ctk.CTkButton(
-            confirm_frame, text="开始修补", fg_color="green", hover_color="dark green", command=self.start_patch
+            confirm_frame, text=self.langget('start patch'), fg_color="green", hover_color="dark green", command=self.start_patch
         )
         confirm_button.pack(side="right", anchor="e", padx=5, pady=5)
 
         confirm_frame.pack(side="top", fill="x", padx=5, pady=5)
 
         progress_frame = ctk.CTkFrame(self, corner_radius=0)
-        self.progress_label = ctk.CTkLabel(progress_frame, text="进度:")
+        self.progress_label = ctk.CTkLabel(progress_frame, text=self.langget('progress')+":")
         #progress_bar = ctk.CTkProgressBar(progress_frame, variable=self.progress)
         #progress_bar._determinate_value = 100
         progress_bar = Progressbar(progress_frame, variable=self.progress, maximum=100)
@@ -276,18 +297,18 @@ class MagiskPatcherUI(ctk.CTk):
         self.textbox = ctk.CTkTextbox(self.patcher_frame, border_width=0, corner_radius=20, font=ctk.CTkFont("console"))
         self.textbox.pack(side='top', fill='both', padx=5, pady=5, expand='yes')
 
-        textbox_clear_button = ctk.CTkButton(confirm_frame, text="清除输出", command=lambda: self.textbox.delete(1.0, 'end'))
+        textbox_clear_button = ctk.CTkButton(confirm_frame, text=self.langget('clean'), command=lambda: self.textbox.delete(1.0, 'end'))
         textbox_clear_button.pack(side='right', padx=5, pady=5)
 
         # Download Frame
-        self.download_list_frame = ctk.CTkScrollableFrame(self.download_frame, corner_radius=5, label_text="可用的magisk版本")
+        self.download_list_frame = ctk.CTkScrollableFrame(self.download_frame, corner_radius=5, label_text=self.langget('available magisk list'))
         download_config_frame = ctk.CTkFrame(self.download_frame, corner_radius=5)
 
-        download_setting_label = ctk.CTkButton(download_config_frame, state='disable', text="设置", fg_color=('grey78', 'grey23'), text_color=('black', 'grey85'), width=200)
+        download_setting_label = ctk.CTkButton(download_config_frame, state='disable', text=self.langget('settints'), fg_color=('grey78', 'grey23'), text_color=('black', 'grey85'), width=200)
         download_setting_label.pack(side='top', fill='x', padx=5, pady=5)
 
         download_proxy_frame = ctk.CTkFrame(download_config_frame)
-        download_proxy_checkbox = ctk.CTkSwitch(download_proxy_frame, text="使用代理", variable=self.isproxy)
+        download_proxy_checkbox = ctk.CTkSwitch(download_proxy_frame, text=self.langget('use proxy'), variable=self.isproxy)
         download_proxy_checkbox.pack(side='top', fill='x', anchor='w', padx=5, pady=5)
         # bind if proxy is not allow, then forget proxy url label
         download_proxy_checkbox.bind("<Button-1>", self.update_proxy_widgets)
@@ -300,28 +321,28 @@ class MagiskPatcherUI(ctk.CTk):
         
         # mirror source list
         download_mirror_frame = ctk.CTkFrame(download_config_frame)
-        download_mirror_checkbox = ctk.CTkSwitch(download_mirror_frame, text="Github镜像源", variable=self.ismirror)
+        download_mirror_checkbox = ctk.CTkSwitch(download_mirror_frame, text=self.langget('github mirror'), variable=self.ismirror)
         download_mirror_checkbox.pack(side='top', fill='x', padx=5, pady=5, expand='no')
         download_mirror_checkbox.bind("<Button-1>", self.update_mirror_widgets)
 
-        self.download_mirror_label = ctk.CTkEntry(download_mirror_frame, placeholder_text="在此处填入你的镜像链接")
+        self.download_mirror_label = ctk.CTkEntry(download_mirror_frame, placeholder_text=self.langget('input your git mirror here'))
 
         download_mirror_frame.pack(side='top', fill='x', padx=5, pady=5, expand='no')
 
         # jsdelivr
-        downlaod_jsdelivr = ctk.CTkSwitch(download_config_frame, text="使用jsdelivr加速下载", variable=self.isjsdelivr)
+        downlaod_jsdelivr = ctk.CTkSwitch(download_config_frame, text=self.langget('use jsdelivr'), variable=self.isjsdelivr)
         downlaod_jsdelivr.pack(side='top', padx=10, pady=5, fill='x')
 
         download_config_local_frame = ctk.CTkFrame(download_config_frame)
-        download_use_local_checkbox = ctk.CTkSwitch(download_config_local_frame, text="使用本地文件修补", variable=self.uselocal)
+        download_use_local_checkbox = ctk.CTkSwitch(download_config_local_frame, text=self.langget('use native file'), variable=self.uselocal)
         download_use_local_checkbox.bind("<Button-1>", self.update_local_widgets)
         download_use_local_checkbox.pack(side='top', padx=5, pady=5, fill='x')
 
         # delta switch
-        self.download_delta_magisk = ctk.CTkSwitch(download_config_local_frame, text="使用delta magisk通道", variable=self.usedeltamagisk)
+        self.download_delta_magisk = ctk.CTkSwitch(download_config_local_frame, text=self.langget('use delta magisk'), variable=self.usedeltamagisk)
         download_config_local_frame.pack(side='top', fill='x', padx=5, pady=5)
 
-        download_refresh_button = ctk.CTkButton(download_config_frame, text="刷新列表", command=self.refresh_magisk)
+        download_refresh_button = ctk.CTkButton(download_config_frame, text=self.langget('refresh list'), command=self.refresh_magisk)
         download_refresh_button.pack(side='bottom', fill='x', padx=10, pady=5)
 
         download_config_frame.pack(side='left', fill='both', padx=5, pady=5, expand='no')
@@ -329,7 +350,7 @@ class MagiskPatcherUI(ctk.CTk):
 
         # other frame
         other_frame = ctk.CTkFrame(self.other_frame)
-        other_introduce_label = ctk.CTkButton(other_frame, state='disable', text="介绍", fg_color=('grey78', 'grey23'), text_color=('black', 'grey85'))
+        other_introduce_label = ctk.CTkButton(other_frame, state='disable', text=self.langget('introduce'), fg_color=('grey78', 'grey23'), text_color=('black', 'grey85'))
         other_introduce_label.pack(side='top', padx=5, pady=5, fill='x')
         other_introduce_logo = ctk.CTkLabel(other_frame, text="        Magisk Patcher", font=ctk.CTkFont(size=30, weight='bold'), image=ctk.CTkImage(Image.open(BytesIO(logodata)), size=(240,100)), compound='left', anchor='sw')
         other_introduce_logo.pack(side='top', fill='x', anchor='w')
@@ -339,10 +360,10 @@ class MagiskPatcherUI(ctk.CTk):
         other_introduce_full.pack(side='top', padx=5, pady=5, fill='both', anchor='w', expand='yes')
         #other_introduce_longlabel = ctk.CTkLabel()
         other_button_frame = ctk.CTkFrame(other_frame)
-        other_visit_button = ctk.CTkButton(other_button_frame, text="访问开源地址", command=lambda: webbrowser.open("https://github.com/affggh/magisk_patcher"))
+        other_visit_button = ctk.CTkButton(other_button_frame, text=self.langget('vist github'), command=lambda: webbrowser.open("https://github.com/affggh/magisk_patcher"))
         other_visit_button.grid(column=0, row=0, padx=5, pady=5)
 
-        loglevel_label = ctk.CTkLabel(other_button_frame, text="log日志等级")
+        loglevel_label = ctk.CTkLabel(other_button_frame, text=self.langget('log level'))
         loglevel_label.grid(column=1, row=0, padx=5, pady=5)
 
         loglevel_slide_bar = ctk.CTkSlider(other_button_frame, from_=logging.DEBUG, to=logging.CRITICAL, number_of_steps=4, variable=self.loglevel, command=self.set_log_level)
@@ -350,7 +371,7 @@ class MagiskPatcherUI(ctk.CTk):
         loglevel_slide_bar.set(logging.WARN) # Default loglevel
         ctk.CTkLabel(other_button_frame, textvariable=self.loglevel).grid(column=3, row=0, padx=5, pady=5)
 
-        ctk.CTkLabel(other_button_frame, text="缩放:").grid(column=4, row=0, padx=(5,0), pady=5)
+        ctk.CTkLabel(other_button_frame, text=self.langget('scaling')+":").grid(column=4, row=0, padx=(5,0), pady=5)
         scaling_bar = ctk.CTkOptionMenu(other_button_frame, values=["0.75", "0.8", "1.0", "1.25", "1.5", "2"], command=self.ui_scaling_event)
         scaling_bar.set("1.0")
         scaling_bar.grid(column=5, row=0, padx=5, pady=5)
@@ -362,15 +383,15 @@ class MagiskPatcherUI(ctk.CTk):
 
     def start_patch(self):
         if not op.isfile(self.bootimg.get()):
-            print("- 请选择一个存在的boot镜像", file=self)
+            print(self.langget('please select a exist boot image'), file=self)
             return
         
         if not op.isfile(op.join("prebuilt", self.magisk_select_int.get())):
-            print("- 请选择一个合理并存在的magisk安装包", file=self)
+            print(self.langget('please select a valid magisk apk'), file=self)
             return
 
         magisk_version = utils.getMagiskApkVersion(op.join("prebuilt", self.magisk_select_int.get()))
-        print(f"- 检测到apk的magisk版本为 [{str(utils.convertVercode2Ver(magisk_version))}]", file=self)
+        print(f"{self.langget('detect select magisk version is')} [{str(utils.convertVercode2Ver(magisk_version))}]", file=self)
 
         utils.parseMagiskApk(op.join("prebuilt", self.magisk_select_int.get()), arch=self.arch.get(), log=self)
 
@@ -392,9 +413,9 @@ class MagiskPatcherUI(ctk.CTk):
                     makedirs("prebuilt", exist_ok=True)
 
                 if not op.isfile(op.join("prebuilt", magisk)):
-                    print(f"- 文件不存在， 准备下载... [{magisk}]", file=self)
+                    print(f"{self.langget('file not exist, ready to download')} [{magisk}]", file=self)
                     if not self.isjsdelivr.get() and self.ismirror.get():
-                        print("- 使用镜像网站下载...", file=self)
+                        print(self.langget('use mirror download'), file=self)
                         url = magisk_list[magisk].replace(self.mirror.get().rstrip('/'), "https://github.com")
                     else:
                         url = magisk_list[magisk]
@@ -405,11 +426,11 @@ class MagiskPatcherUI(ctk.CTk):
                                          self.progress, 
                                          self)
                 else:
-                    print(f"- 文件存在，无需重复下载...", file=self)
-            self.magisk_select.set(f"- 当前选择 [{magisk}]")
+                    print(self.langget('file exist, no need download'), file=self)
+            self.magisk_select.set(f"- {self.langget('current magisk')} [{magisk}]")
             self.change_frame_patcher()
 
-        print("- 刷新magisk列表", file=self)
+        print(self.langget('refresh magisk list'), file=self)
 
         # delete widgets
         for i in self.magisk_list:
@@ -417,10 +438,10 @@ class MagiskPatcherUI(ctk.CTk):
         self.magisk_list = []
 
         if self.uselocal.get():
-            print("- 从本地prebuil目录获取", file=self)
+            print(self.langget('use from native prebuilt dir'), file=self)
             if not op.isdir("prebuilt"):
-                print("- 没有找到magisk安装包，请手动下载后放置在工作目录下", file=self)
-                print(f"\t工作目录: {getcwd()}", file=self)
+                print(self.langget('no magisk in prebuilt, please downloadn and place'), file=self)
+                print(f"\t{self.langget('work dir')}: {getcwd()}", file=self)
                 makedirs("prebuilt", exist_ok=True)
                 
             magisk_list = []
@@ -431,7 +452,7 @@ class MagiskPatcherUI(ctk.CTk):
                         magisk_list.append(file)
 
             if magisk_list.__len__() == 0:
-                print("- 没有在本地目录找到任何安装包，请手动下载后放入prebuilt目录", file=self)
+                print(self.langget('cannot find any apk, please download and put them into prebuilt dir'), file=self)
                 self.change_frame_patcher()
 
             for index, current in enumerate(magisk_list):
@@ -466,7 +487,7 @@ class MagiskPatcherUI(ctk.CTk):
         ctk.set_appearance_mode(theme)
 
     def file_choose_dialog(self):
-        fname = ctk.filedialog.askopenfilename(title="选择一个boot镜像", initialdir=getcwd())
+        fname = ctk.filedialog.askopenfilename(title=self.langget('select a boot image'), initialdir=getcwd())
         self.bootimg.set(fname)
     
     def set_progress(self, value: int):
@@ -532,6 +553,15 @@ class MagiskPatcherUI(ctk.CTk):
     def ui_scaling_event(self, value):
         ctk.set_widget_scaling(float(value))
         ctk.set_window_scaling(float(value))
+
+    def refresh_widgets(self):
+        for child in self.winfo_children():
+            child.destroy()
+        
+        Language.select = self.lang.get()
+        self.lang_dict = getattr(Language, self.lang.get())
+        self.magisk_select.set(self.langget('magisk is not select'))
+        self.__setup_widgets()
 
 def centerWindow(parent: ctk.CTk):
     width, height = parent.winfo_screenwidth(), parent.winfo_screenheight()

@@ -7,6 +7,8 @@ from multiprocessing.dummy import DummyProcess
 import platform
 from os import chmod
 
+from .lang import Language, langget
+
 DEFAULT_MAGISK_API_URL = "https://api.github.com/repos/topjohnwu/Magisk/releases"
 DELTA_MAGISK_API_URL = "https://api.github.com/repos/HuskyDG/magisk-files/releases"
 
@@ -55,7 +57,7 @@ def getReleaseList(url: str = DEFAULT_MAGISK_API_URL, isproxy: bool=False, proxy
                      proxies=proxies if isproxy else None,
                      timeout=3)
     if not r.ok:
-        print("获取版本失败，请检查网络或尝试添加代理...", file=log)
+        print(langget('get version faild, please check net or add proxy'), file=log)
         return {}
     data = r.json()
     dlink = {}
@@ -122,9 +124,9 @@ def downloadFile(url: str, to: str, isproxy: bool = False, proxy:str="127.0.0.1:
         r = requests.get(url, stream=True, allow_redirects=True,
                          proxies=proxies if isproxy else None)
     except:
-        print("- 网络异常或无法连接到目标链接...", file=log)
+        print(langget('internet connect faild or cannot connect target url'), file=log)
         return False
-    print("- 开始下载[%s] -> [%s]" %(url, to), file=log)
+    print(f"- {langget('start download')}[{url}] -> [{to}]", file=log)
     total_size = int(r.headers['content-length'])
     now = 0
     with open(to, 'wb') as f:
@@ -135,7 +137,7 @@ def downloadFile(url: str, to: str, isproxy: bool = False, proxy:str="127.0.0.1:
                 now += chunk_size
                 if now > before:
                     progress.set(p(now, total_size))
-    print("- 下载完成", file=log)
+    print(langget('download complete'), file=log)
     progress.set(0)
     return True
 
@@ -169,7 +171,7 @@ def parseMagiskApk(apk: str, arch:["arm64", "arm", "x86", "x86_64"]="arm64", log
         with open(path, 'wb') as f:
             f.write(bytes)
 
-    print("- 开始解压需要的文件...", file=log)
+    print(langget('start decompress needed'), file=log)
     arch = archconv(arch)
     os, p = retTypeAndMachine()
     pp = "x86_64"
