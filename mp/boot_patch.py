@@ -30,6 +30,7 @@ def grep_prop(key, file) -> str:
         for i in iter(f.readline, ""):
             if key in i:
                 return i.split("=")[1].rstrip("\n")
+    return ""
 
 class BootPatcher(object):
     def __init__(
@@ -70,6 +71,8 @@ class BootPatcher(object):
             "PATCHVBMETAFLAG": bool2str(self.patchvbmeta_flag),
             "RECOVERYMODE": bool2str(self.recovery_mode),
             "LEGACYSAR": bool2str(self.legacysar),
+            # Ignore win case sensitive
+           "MAGISKBOOT_WINSUP_NOCASE": "1"
         }
 
         # This maybe no need
