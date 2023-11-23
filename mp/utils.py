@@ -17,6 +17,11 @@ def retTypeAndMachine():
     ostype = platform.system().lower()
     if ostype.find("cygwin") >= 0:  # Support cygwin x11
         ostype = "windows"
+    rel = ''
+    if ostype == "darwin":
+        ostype = "macos"
+        v, _, _ = platform.mac_ver()
+        rel = v.split('.', 1)[0]
     machine = platform.machine().lower()
     if machine == 'aarch64_be' \
         or machine == 'armv8b' \
@@ -26,7 +31,7 @@ def retTypeAndMachine():
         machine = 'x86'
     if machine == "amd64":
         machine = 'x86_64'
-    return ostype, machine
+    return ostype, rel, machine
 
 def runcmd(cmd):
     if osname == 'posix':
@@ -173,7 +178,7 @@ def parseMagiskApk(apk: str, arch:["arm64", "arm", "x86", "x86_64"]="arm64", log
 
     print(langget('start decompress needed'), file=log)
     arch = archconv(arch)
-    os, p = retTypeAndMachine()
+    os, _, p = retTypeAndMachine()
     pp = "x86_64"
     if p == "aarch64":
         pp = "arm64-v8a"
