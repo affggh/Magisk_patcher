@@ -46,7 +46,7 @@ INTRODUCE = """\
 - 感谢:
 \t- magiskboot on mingw32 from https://github.com/svoboda18/magiskboot
 \t- customtkinter ui界面库，有一说一确实好看
-""" %(OS, ARCH, VERSION, AUTHOR, LICENSE, pyversion, getcwd(), AUTHOR)
+""" %(f'{OS} ({REL})' if REL else OS, ARCH, VERSION, AUTHOR, LICENSE, pyversion, getcwd(), AUTHOR)
 if OS == 'windows':
     prebuilt_magiskboot = op.abspath(op.join(op.dirname(argv[0]), "bin", OS, ARCH, "magiskboot" + EXT))
 elif OS == 'macos':
@@ -116,9 +116,10 @@ class MagiskPatcherUI(ctk.CTk):
         self.log.setLevel(logging.WARN)
 
         print("- Detect env:", file=self)
-        print(f"\tOS \t: {OS}", file=self)
-        if OS == 'macos':
-            print(f"\tREL\t: {REL}", file=self)
+        if REL:
+            print(f"\tOS \t: {OS} ({REL})", file=self)
+        else:
+            print(f"\tOS \t: {OS}", file=self)
         print(f"\tARCH\t: {ARCH}", file=self)
         print(f"\tCurrent Dir\t: {getcwd()}", file=self)
         if OS in ['windows', 'macos']:
