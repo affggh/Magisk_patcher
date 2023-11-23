@@ -31,7 +31,7 @@ AUTHOR = "affggh"
 TITLE = "Magisk Patcher v%s by %s" % (VERSION, AUTHOR)
 WIDTH = 900
 HEIGHT = 420
-OS, ARCH = utils.retTypeAndMachine()
+OS, REL, ARCH = utils.retTypeAndMachine()
 LICENSE = "GPLv3"
 INTRODUCE = """\
 - Native OS    \t: %s
@@ -46,9 +46,11 @@ INTRODUCE = """\
 - 感谢:
 \t- magiskboot on mingw32 from https://github.com/svoboda18/magiskboot
 \t- customtkinter ui界面库，有一说一确实好看
-""" %(OS, ARCH, VERSION, AUTHOR, LICENSE, pyversion, getcwd(), AUTHOR)
-if osname == 'nt':
+""" %(f'{OS} ({REL})' if REL else OS, ARCH, VERSION, AUTHOR, LICENSE, pyversion, getcwd(), AUTHOR)
+if OS == 'windows':
     prebuilt_magiskboot = op.abspath(op.join(op.dirname(argv[0]), "bin", OS, ARCH, "magiskboot" + EXT))
+elif OS == 'macos':
+    prebuilt_magiskboot = op.abspath(op.join(op.dirname(argv[0]), "bin", OS, REL, ARCH, "magiskboot" + EXT))
 else:
     prebuilt_magiskboot = op.abspath(op.join(op.dirname(argv[0]), "bin", "magiskboot"+EXT))
 
@@ -114,17 +116,20 @@ class MagiskPatcherUI(ctk.CTk):
         self.log.setLevel(logging.WARN)
 
         print("- Detect env:", file=self)
-        print(f"\tOS \t: {OS}", file=self)
+        if REL:
+            print(f"\tOS \t: {OS} ({REL})", file=self)
+        else:
+            print(f"\tOS \t: {OS}", file=self)
         print(f"\tARCH\t: {ARCH}", file=self)
         print(f"\tCurrent Dir\t: {getcwd()}", file=self)
-        if osname == 'nt':
-            print(f"- Windows Use prebuilt magiskboot.", file=self)
+        if OS in ['windows', 'macos']:
+            print(f"- Windows/macOS Use prebuilt magiskboot.", file=self)
             print(f"\tFile should be here: {prebuilt_magiskboot}", file=self)
             if not prebuilt_magiskboot:
-                print("- Error: Cannot find prebuilt magiskboot on windows.", file=self)
-                print("\tFix this to patch boot image on windows correctly.", file=self)
+                print("- Error: Cannot find prebuilt magiskboot.", file=self)
+                print("\tFix this to patch boot image correctly.", file=self)
                 print(f"{prebuilt_magiskboot}")
-        elif osname == 'posix':
+        elif OS == 'linux':
             print(f"- Linux use magisk.apk inner magiskboot insted prebuilt magiskboot.", file=self)
             print(f"\t It will extract when patching a boot image.", file=self)
         
