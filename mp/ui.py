@@ -339,7 +339,7 @@ class MagiskPatcherUI(ctk.CTk):
         downlaod_jsdelivr.pack(side='top', padx=10, pady=5, fill='x')
 
         download_config_local_frame = ctk.CTkFrame(download_config_frame)
-        download_use_local_checkbox = ctk.CTkSwitch(download_config_local_frame, text=self.langget('use native file'), variable=self.uselocal)
+        download_use_local_checkbox = ctk.CTkSwitch(download_config_local_frame, text=self.langget('use local file'), variable=self.uselocal)
         download_use_local_checkbox.bind("<Button-1>", self.update_local_widgets)
         download_use_local_checkbox.pack(side='top', padx=5, pady=5, fill='x')
 
@@ -443,7 +443,7 @@ class MagiskPatcherUI(ctk.CTk):
         self.magisk_list = []
 
         if self.uselocal.get():
-            print(self.langget('use from native prebuilt dir'), file=self)
+            print(self.langget('use from local prebuilt dir'), file=self)
             if not op.isdir("prebuilt"):
                 print(self.langget('no magisk in prebuilt, please downloadn and place'), file=self)
                 print(f"\t{self.langget('work dir')}: {getcwd()}", file=self)
