@@ -101,8 +101,8 @@ class BootPatcher(object):
                             env=self.env,
                             creationflags=creationflags,
                             )
-        logging.info(ret.stdout.decode())
-        return ret.returncode, ret.stdout.decode()
+        logging.info(ret.stdout.decode(encoding="utf-8"))
+        return ret.returncode, ret.stdout.decode(encoding="utf-8")
     
     def patch(self, bootimg:str) -> bool:
         # Check bootimg exist
